@@ -121,9 +121,11 @@ private func testOnce(flags: TestFlags, block: (KotlinLivenessTracker, SwiftLive
             try assertTrue(swiftLivenessTracker.isEmpty())
         }
 
+#if !NOOP_GC
         // If something has "leaked" to autoreleasepool, one of the assertions below should fail:
         try assertTrue(kotlinLivenessTracker.objectsAreDead())
         try assertTrue(swiftLivenessTracker.objectsAreDead())
+#endif
     }
 }
 
