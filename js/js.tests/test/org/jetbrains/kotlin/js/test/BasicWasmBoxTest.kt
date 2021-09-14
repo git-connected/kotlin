@@ -152,7 +152,8 @@ abstract class BasicWasmBoxTest(
             sourceModule,
             phaseConfig = phaseConfig,
             irFactory = IrFactoryImpl,
-            exportedDeclarations = setOf(FqName.fromSegments(listOfNotNull(testPackage, testFunction)))
+            exportedDeclarations = setOf(FqName.fromSegments(listOfNotNull(testPackage, testFunction))),
+            debugMode = true,
         )
 
         outputWatFile.write(compilerResult.wat)
