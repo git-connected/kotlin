@@ -201,8 +201,8 @@ internal class ModuleDFGBuilder(val context: Context, val irModule: IrModuleFrag
 
             override fun visitConstructor(declaration: IrConstructor) {
                 val body = declaration.body
-                assert (body != null || declaration.constructedClass.isNonGeneratedAnnotation()) {
-                    "Non-annotation class constructor has empty body"
+                assert (body != null) {
+                    "Class constructor has empty body"
                 }
                 context.logMultiple {
                     +"Analysing function ${declaration.descriptor}"
