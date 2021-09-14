@@ -172,6 +172,12 @@ public class FirLazyBodiesCalculatorTestGenerated extends AbstractFirLazyBodiesC
         }
 
         @Test
+        @TestMetadata("propertyWithBackingFieldDifferentTypes.kt")
+        public void testPropertyWithBackingFieldDifferentTypes() throws Exception {
+            runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/propertyWithBackingFieldDifferentTypes.kt");
+        }
+
+        @Test
         @TestMetadata("simpleClass.kt")
         public void testSimpleClass() throws Exception {
             runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/simpleClass.kt");
