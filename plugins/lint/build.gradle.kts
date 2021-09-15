@@ -13,7 +13,6 @@ dependencies {
     compile(project(":idea:idea-android"))
     compile(project(":plugins:uast-kotlin"))
     compileOnly(project(":kotlin-android-extensions-runtime"))
-    compileOnly("org.jetbrains.intellij.deps:asm-all:9.1")
     compileOnly(intellijDep())
     compileOnly(intellijPluginDep("android"))
 }

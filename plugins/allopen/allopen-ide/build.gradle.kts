@@ -16,7 +16,6 @@ dependencies {
     compileOnly(project(":idea:idea-jvm"))
     compileOnly(project(":idea:idea-jps-common"))
     compileOnly(project(":plugins:annotation-based-compiler-plugins-ide-support"))
-    compileOnly("org.jetbrains.intellij.deps:asm-all:9.1")
     compileOnly(intellijDep())
     excludeInAndroidStudio(rootProject) { compileOnly(intellijPluginDep("maven")) }
     compileOnly(intellijPluginDep("gradle"))
@@ -43,9 +42,7 @@ dependencies {
     testCompileOnly(project(":idea:idea-native"))
     testCompileOnly(project(":idea:idea-gradle-native"))
     testCompileOnly(projectTests(":idea:idea-test-framework"))
-    testCompileOnly("org.jetbrains.intellij.deps:asm-all:9.1")
     testCompileOnly(intellijDep())
-    testRuntime("org.jetbrains.intellij.deps:asm-all:9.1")
     testRuntimeOnly(intellijDep())
 
     compileOnly(intellijPluginDep("java"))

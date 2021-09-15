@@ -5,7 +5,6 @@ plugins {
 
 dependencies {
     implementation(kotlinStdlib("jdk8"))
-    implementation("org.jetbrains.intellij.deps:asm-all:9.1")
     implementation(intellijDep())
 }
 

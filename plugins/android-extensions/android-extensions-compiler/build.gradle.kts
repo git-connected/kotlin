@@ -35,7 +35,6 @@ dependencies {
     testCompile(commonDep("junit:junit"))
 
     testRuntime(intellijPluginDep("junit"))
-    testRuntime("org.jetbrains.intellij.deps:asm-all:9.1")
     testRuntime(intellijDep())
 
     robolectricClasspath(commonDep("org.robolectric", "robolectric"))

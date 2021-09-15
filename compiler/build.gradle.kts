@@ -34,7 +34,6 @@ fun configureFreeCompilerArg(isEnabled: Boolean, compilerArgument: String) {
 val antLauncherJar by configurations.creating
 
 dependencies {
-    testRuntime("org.jetbrains.intellij.deps:asm-all:9.1")
     testRuntime(intellijDep()) // Should come before compiler, because of "progarded" stuff needed for tests
 
     testCompile(project(":kotlin-script-runtime"))
@@ -60,6 +59,7 @@ dependencies {
         testCompileOnly(project(it))
     }
     testCompileOnly(intellijCoreDep()) { includeJars("intellij-core") }
+    testCompileOnly("org.jetbrains.intellij.deps:asm-all:9.1")
     testCompileOnly(intellijDep()) { includeJars("idea", "idea_rt", "util", rootProject = rootProject) }
 
     testRuntimeOnly(intellijPluginDep("java"))

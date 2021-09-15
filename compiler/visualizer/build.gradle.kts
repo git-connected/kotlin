@@ -6,7 +6,6 @@ plugins {
 }
 
 dependencies {
-    testRuntime("org.jetbrains.intellij.deps:asm-all:9.1")
     testRuntime(intellijDep())
     testCompile(intellijCoreDep()) { includeJars("intellij-core") }
 

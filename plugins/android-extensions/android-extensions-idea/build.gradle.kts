@@ -9,7 +9,6 @@ plugins {
 dependencies {
     compile(project(":plugins:android-extensions-compiler"))
 
-    testRuntime("org.jetbrains.intellij.deps:asm-all:9.1")
     testRuntime(intellijDep())
 
     compileOnly(project(":compiler:util"))
@@ -22,7 +21,6 @@ dependencies {
     compileOnly(intellijPluginDep("android"))
     compileOnly(intellijPluginDep("gradle"))
     compileOnly(intellijPluginDep("Groovy"))
-    compileOnly("org.jetbrains.intellij.deps:asm-all:9.1")
     compileOnly(intellijDep())
 
     testCompile(project(":compiler:cli"))
@@ -40,7 +38,6 @@ dependencies {
     testRuntime(project(":kotlin-reflect"))
     testCompile(intellijPluginDep("android"))
     testCompile(intellijPluginDep("Groovy"))
-    testCompile("org.jetbrains.intellij.deps:asm-all:9.1")
     testCompile(intellijDep())
 
     testRuntime(project(":idea:idea-jvm"))
