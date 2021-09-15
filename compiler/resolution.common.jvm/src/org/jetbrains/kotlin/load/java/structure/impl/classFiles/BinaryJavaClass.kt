@@ -255,7 +255,7 @@ class BinaryJavaClass(
         }
     }
 
-    override fun visitPermittedSubclass(permittedSubclass: String?) {
-        permittedTypes.addIfNotNull(permittedSubclass?.convertInternalNameToClassifierType())
+    override fun visitPermittedSubtypeExperimental(permittedSubtype: String?) {
+        permittedTypes.addIfNotNull(permittedSubtype?.convertInternalNameToClassifierType())
     }
 }
