@@ -401,10 +401,6 @@ class FirRenderer(builder: StringBuilder, private val mode: RenderMode = RenderM
                 }
                 is FirField -> "field"
                 is FirEnumEntry -> "enum entry"
-
-                // we do not print 'field' here, because the name of the variable is 'field' and it will be printed separately
-                is FirBackingField -> "backing"
-
                 else -> "unknown"
             }
         )
@@ -542,7 +538,14 @@ class FirRenderer(builder: StringBuilder, private val mode: RenderMode = RenderM
     }
 
     override fun visitBackingField(backingField: FirBackingField) {
-        visitVariable(backingField)
+        print(backingField.visibility.asString() + " ")
+        print("<explicit backing field>: ")
+        backingField.returnTypeRef.accept(this)
+
+        backingField.initializer?.let {
+            print(" = ")
+            it.accept(this)
+        }
     }
 
     override fun visitSimpleFunction(simpleFunction: FirSimpleFunction) {
