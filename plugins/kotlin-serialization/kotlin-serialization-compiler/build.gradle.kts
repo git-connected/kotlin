@@ -6,8 +6,7 @@ plugins {
 }
 
 dependencies {
-    compileOnly("org.jetbrains.intellij.deps:asm-all:9.1")
-    compileOnly(intellijCoreDep()) { includeJars("intellij-core", rootProject = rootProject) }
+    compileOnly(intellijCoreDep()) { includeJars("intellij-core", "asm-all", rootProject = rootProject) }
 
     compileOnly(project(":compiler:plugin-api"))
     compileOnly(project(":compiler:cli-common"))

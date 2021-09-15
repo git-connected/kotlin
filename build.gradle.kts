@@ -201,6 +201,7 @@ extra["intellijSeparateSdks"] = intellijSeparateSdks
 
 extra["IntellijCoreDependencies"] =
     listOf(
+        "asm-all-8.0.1",
         "guava",
         "jdom",
         "jna",

@@ -29,7 +29,6 @@ dependencies {
     testCompile(commonDep("com.android.tools:r8"))
     testCompileOnly(intellijCoreDep()) { includeJars("intellij-core") }
 
-    testCompile("org.jetbrains.intellij.deps:asm-all:9.1")
     testCompile(intellijDep()) {
         includeJars(
             "jps-model",
@@ -41,6 +40,7 @@ dependencies {
             "idea_rt",
             "guava",
             "trove4j",
+            "asm-all",
             "log4j",
             "jdom",
             "streamex",

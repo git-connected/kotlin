@@ -59,8 +59,7 @@ dependencies {
         testCompileOnly(project(it))
     }
     testCompileOnly(intellijCoreDep()) { includeJars("intellij-core") }
-    testCompileOnly("org.jetbrains.intellij.deps:asm-all:9.1")
-    testCompileOnly(intellijDep()) { includeJars("idea", "idea_rt", "util", rootProject = rootProject) }
+    testCompileOnly(intellijDep()) { includeJars("idea", "idea_rt", "util", "asm-all", rootProject = rootProject) }
 
     testRuntimeOnly(intellijPluginDep("java"))
 

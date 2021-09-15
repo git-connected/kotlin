@@ -20,9 +20,8 @@ fun Project.configureJavaInstrumentation() {
     if (plugins.hasPlugin("org.gradle.java")) {
         val javaInstrumentator by configurations.creating
         dependencies {
-            javaInstrumentator("org.jetbrains.intellij.deps:asm-all:9.1")
             javaInstrumentator(intellijDep()) {
-                includeJars("javac2", "jdom", rootProject = rootProject)
+                includeJars("javac2", "jdom", "asm-all", rootProject = rootProject)
             }
         }
         for (sourceSet in listOf(mainSourceSet, testSourceSet)) {

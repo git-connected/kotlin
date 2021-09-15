@@ -15,8 +15,7 @@ dependencies {
     compileOnly(project(":js:js.config"))
     compileOnly(project(":kotlin-util-klib-metadata"))
     compileOnly(intellijCoreDep()) { includeJars("intellij-core") }
-    compileOnly("org.jetbrains.intellij.deps:asm-all:9.1")
-    compileOnly(intellijDep()) { includeJars("trove4j", "util", rootProject = rootProject) }
+    compileOnly(intellijDep()) { includeJars("asm-all", "trove4j", "util", rootProject = rootProject) }
     compileOnly(project(":kotlin-reflect-api"))
 
     testCompileOnly(project(":compiler:cli-common"))

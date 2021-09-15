@@ -21,7 +21,7 @@ dependencies {
     compileOnly(project(":compiler:ir.tree.impl"))
     compileOnly(project(":plugins:parcelize:parcelize-runtime"))
     compileOnly(intellijCoreDep()) { includeJars("intellij-core") }
-    compileOnly("org.jetbrains.intellij.deps:asm-all:9.1")
+    compileOnly(intellijDep()) { includeJars("asm-all", rootProject = rootProject) }
 
     testCompile(project(":compiler:util"))
     testCompile(project(":compiler:backend"))

@@ -73,9 +73,8 @@ dependencies {
     runtimeOnly(projectRuntimeJar(":kotlin-scripting-compiler-embeddable"))
     runtimeOnly(projectRuntimeJar(":kotlin-scripting-compiler-impl-embeddable"))
 
-    jarContents(compileOnly("org.jetbrains.intellij.deps:asm-all:9.1") ?: error("Expected to be not-null"))
     jarContents(compileOnly(intellijDep()) {
-        includeJars("gson", "guava", "serviceMessages", rootProject = rootProject)
+        includeJars("asm-all", "gson", "guava", "serviceMessages", rootProject = rootProject)
     })
 
     // com.android.tools.build:gradle has ~50 unneeded transitive dependencies

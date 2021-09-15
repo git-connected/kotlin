@@ -80,8 +80,7 @@ fun Project.configureFormInstrumentation() {
     val instrumentationClasspathCfg = configurations.create("instrumentationClasspath")
 
     dependencies {
-        instrumentationClasspathCfg("org.jetbrains.intellij.deps:asm-all:9.1")
-        instrumentationClasspathCfg(intellijDep()) { includeJars("javac2", "jdom", rootProject = rootProject) }
+        instrumentationClasspathCfg(intellijDep()) { includeJars("javac2", "jdom", "asm-all", rootProject = rootProject) }
     }
 
     afterEvaluate {

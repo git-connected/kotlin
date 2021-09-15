@@ -9,7 +9,6 @@ dependencies {
 
     compileOnly(toolsJarApi())
     compileOnly(intellijCoreDep()) { includeJars("intellij-core") }
-    compileOnly("org.jetbrains.intellij.deps:asm-all:9.1")
     compileOnly(intellijDep()) { includeIntellijCoreJarDependencies(project) }
 }
 
