@@ -45,7 +45,7 @@ internal abstract class KtUltraLightMethod(
     lightMemberOrigin: LightMemberOrigin?,
     protected val support: KtUltraLightSupport,
     containingClass: KtLightClass,
-    private val methodIndex: Int
+    protected val methodIndex: Int
 ) : KtLightMethodImpl(
     { delegate },
     lightMemberOrigin,
@@ -219,7 +219,7 @@ internal class KtUltraLightMethodForDescriptor(
 ) {
     // This is greedy realization of UL class.
     // This means that all data that depends on descriptor evaluated in ctor so the descriptor will be released on the end.
-    // Be aware to save descriptor in class instance or any depending references
+    // Be aware to save descriptor in class instance or any depending on references
 
     private val lazyInitializers = mutableListOf<Lazy<*>>()
     private inline fun <T> getAndAddLazy(crossinline initializer: () -> T): Lazy<T> =

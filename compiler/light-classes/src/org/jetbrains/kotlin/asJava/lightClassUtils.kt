@@ -135,12 +135,10 @@ val PsiElement.unwrapped: PsiElement?
         else -> this
     }
 
-val PsiElement.namedUnwrappedElement: PsiNamedElement?
-    get() = unwrapped?.getNonStrictParentOfType()
+val PsiElement.namedUnwrappedElement: PsiNamedElement? get() = unwrapped?.getNonStrictParentOfType()
 
 
-val KtClassOrObject.hasInterfaceDefaultImpls: Boolean
-    get() = this is KtClass && isInterface() && hasNonAbstractMembers(this)
+val KtClassOrObject.hasInterfaceDefaultImpls: Boolean get() = this is KtClass && isInterface() && hasNonAbstractMembers(this)
 
 val KtClassOrObject.hasRepeatableAnnotationContainer: Boolean
     get() = this is KtClass &&
@@ -160,9 +158,11 @@ val KtClassOrObject.hasRepeatableAnnotationContainer: Boolean
 
 private fun hasNonAbstractMembers(ktInterface: KtClass): Boolean = ktInterface.declarations.any(::isNonAbstractMember)
 
-private fun isNonAbstractMember(member: KtDeclaration?): Boolean =
-    (member is KtNamedFunction && member.hasBody()) ||
-            (member is KtProperty && (member.hasDelegateExpressionOrInitializer() || member.getter?.hasBody() ?: false || member.setter?.hasBody() ?: false))
+private fun isNonAbstractMember(member: KtDeclaration?): Boolean = when (member) {
+    is KtNamedFunction -> member.hasBody()
+    is KtProperty -> member.hasDelegateExpressionOrInitializer() || member.getter?.hasBody() == true || member.setter?.hasBody() == true
+    else -> false
+}
 
 private val DEFAULT_IMPLS_CLASS_NAME = Name.identifier(JvmAbi.DEFAULT_IMPLS_CLASS_NAME)
 fun FqName.defaultImplsChild() = child(DEFAULT_IMPLS_CLASS_NAME)
@@ -182,6 +182,7 @@ fun KtElement.toLightAnnotation(): PsiAnnotation? {
             }
         }
     }
+
     return null
 }
 
@@ -216,9 +217,7 @@ fun accessorNameByPropertyName(name: String, accessor: KtLightMethod): String? =
     }
 }
 
-fun getAccessorNamesCandidatesByPropertyName(name: String): List<String> {
-    return listOf(JvmAbi.setterName(name), JvmAbi.getterName(name))
-}
+fun getAccessorNamesCandidatesByPropertyName(name: String): List<String> = listOf(JvmAbi.setterName(name), JvmAbi.getterName(name))
 
 fun KtLightMethod.checkIsMangled(): Boolean {
     val demangledName = KotlinTypeMapper.InternalNameMapper.demangleInternalName(name) ?: return false
@@ -227,7 +226,6 @@ fun KtLightMethod.checkIsMangled(): Boolean {
 }
 
 fun fastCheckIsNullabilityApplied(lightElement: KtLightElement<*, PsiModifierListOwner>): Boolean {
-
     val elementIsApplicable =
         (lightElement is KtLightMember<*> && lightElement !is KtLightFieldImpl.KtLightEnumConstant) || lightElement is LightParameter
     if (!elementIsApplicable) return false

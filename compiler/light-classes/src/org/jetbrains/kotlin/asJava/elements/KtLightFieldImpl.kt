@@ -1,17 +1,6 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.asJava.elements
@@ -27,9 +16,10 @@ import org.jetbrains.kotlin.asJava.classes.cannotModify
 import org.jetbrains.kotlin.asJava.classes.lazyPub
 import org.jetbrains.kotlin.psi.KtEnumEntry
 import org.jetbrains.kotlin.psi.KtNamedDeclaration
+import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 
 sealed class KtLightFieldImpl<D : PsiField>(
-    override val lightMemberOrigin: LightMemberOrigin?,
+    lightMemberOrigin: LightMemberOrigin?,
     computeRealDelegate: () -> D,
     containingClass: KtLightClass,
     dummyDelegate: PsiField?
@@ -53,10 +43,7 @@ sealed class KtLightFieldImpl<D : PsiField>(
 
     override fun computeConstantValue() = clsDelegate.computeConstantValue()
 
-    override fun setName(@NonNls name: String): PsiElement {
-        (kotlinOrigin as? KtNamedDeclaration)?.setName(name)
-        return this
-    }
+    override fun setName(@NonNls name: String): PsiElement = also { kotlinOrigin?.safeAs<KtNamedDeclaration>()?.setName(name) }
 
     override fun equals(other: Any?): Boolean =
         this === other ||
@@ -66,11 +53,10 @@ sealed class KtLightFieldImpl<D : PsiField>(
 
     override fun hashCode() = 31 * containingClass.hashCode() + name.hashCode()
 
-    override fun computeConstantValue(visitedVars: MutableSet<PsiVariable>?): Any? {
-        return (clsDelegate as PsiVariableEx).computeConstantValue(visitedVars)
-    }
+    override fun computeConstantValue(visitedVars: MutableSet<PsiVariable>?): Any? =
+        clsDelegate.safeAs<PsiVariableEx>()?.computeConstantValue(visitedVars)
 
-    override fun copy() = Factory.create(lightMemberOrigin?.copy(), clsDelegate, containingClass)
+    override fun copy() = create(lightMemberOrigin?.copy(), clsDelegate, containingClass)
 
 
     class KtLightEnumConstant(
@@ -91,9 +77,8 @@ sealed class KtLightFieldImpl<D : PsiField>(
         override fun getArgumentList() = clsDelegate.argumentList
 
         override fun getInitializingClass(): PsiEnumConstantInitializer? = initializingClass
-        override fun getOrCreateInitializingClass(): PsiEnumConstantInitializer {
-            return initializingClass ?: throw UnsupportedOperationException("Can't create enum constant body: ${clsDelegate.name}")
-        }
+        override fun getOrCreateInitializingClass(): PsiEnumConstantInitializer =
+            initializingClass ?: throw UnsupportedOperationException("Can't create enum constant body: ${clsDelegate.name}")
 
         override fun resolveConstructor() = clsDelegate.resolveConstructor()
         override fun resolveMethod() = clsDelegate.resolveMethod()
@@ -105,9 +90,7 @@ sealed class KtLightFieldImpl<D : PsiField>(
         computeDelegate: () -> PsiField,
         containingClass: KtLightClass,
         dummyDelegate: PsiField?
-    ) :
-        KtLightFieldImpl<PsiField>(origin, computeDelegate, containingClass, dummyDelegate),
-        KtLightFieldForSourceDeclarationSupport
+    ) : KtLightFieldImpl<PsiField>(origin, computeDelegate, containingClass, dummyDelegate), KtLightFieldForSourceDeclarationSupport
 
     companion object Factory {
         fun create(origin: LightMemberOrigin?, delegate: PsiField, containingClass: KtLightClass): KtLightField = when (delegate) {
@@ -120,16 +103,14 @@ sealed class KtLightFieldImpl<D : PsiField>(
             origin: LightMemberOriginForDeclaration?,
             containingClass: KtLightClass,
             computeRealDelegate: () -> PsiField
-        ): KtLightField {
-            if (dummyDelegate is PsiEnumConstant) {
-                @Suppress("UNCHECKED_CAST")
-                return KtLightEnumConstant(origin, computeRealDelegate as () -> PsiEnumConstant, containingClass, dummyDelegate)
-            }
-            return KtLightFieldForSourceDeclaration(origin, computeRealDelegate, containingClass, dummyDelegate)
-        }
+        ): KtLightField = if (dummyDelegate is PsiEnumConstant) {
+            @Suppress("UNCHECKED_CAST")
+            KtLightEnumConstant(origin, computeRealDelegate as () -> PsiEnumConstant, containingClass, dummyDelegate)
+        } else
+            KtLightFieldForSourceDeclaration(origin, computeRealDelegate, containingClass, dummyDelegate)
 
         fun fromClsFields(delegateClass: PsiClass, containingClass: KtLightClass) = delegateClass.fields.map {
-            KtLightFieldImpl.create(getOrigin(it), it, containingClass)
+            create(getOrigin(it), it, containingClass)
         }
 
         fun getOrigin(field: PsiField) = getMemberOrigin(field)

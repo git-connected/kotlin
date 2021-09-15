@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -66,12 +66,11 @@ class KtUltraLightClassForFacade(
         }
     }
 
-    override val givenAnnotations: List<KtLightAbstractAnnotation>?
-        get() = if (isMultiFileClass) emptyList() else _givenAnnotations
+    override val givenAnnotations: List<KtLightAbstractAnnotation>? get() = if (isMultiFileClass) emptyList() else _givenAnnotations
 
     override fun getModifierList(): PsiModifierList = _modifierList
 
-    override fun getScope(): PsiElement? = parent
+    override fun getScope(): PsiElement = parent
 
     private val filesWithSupportsWithCreators by lazyPub {
         filesWithSupports.map { (file, support) ->
@@ -101,6 +100,7 @@ class KtUltraLightClassForFacade(
                     ktFunction = declaration,
                     forceStatic = true
                 )
+
                 is KtProperty -> {
                     if (!declaration.isPrivate() || declaration.accessors.isNotEmpty()) {
                         creator.propertyAccessors(
@@ -111,8 +111,10 @@ class KtUltraLightClassForFacade(
                         )
                     } else emptyList()
                 }
+
                 else -> emptyList()
             }
+
             result.addAll(methods)
         }
     }
@@ -122,6 +124,7 @@ class KtUltraLightClassForFacade(
         for ((file, support, creator) in filesWithSupportsWithCreators) {
             loadMethodsFromFile(file, support, creator, result)
         }
+
         if (!multiFileClass) result else result.filterNot { it.hasModifierProperty(PsiModifier.PRIVATE) }
     }
 

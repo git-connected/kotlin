@@ -70,11 +70,10 @@ abstract class KtLightModifierList<out T : KtLightElement<KtModifierListOwner, P
         annotationsForEntries.forEach {
             it.parent = this
         }
+
         val modifierListOwner = parent
         if (modifierListOwner is KtLightClassForSourceDeclaration && modifierListOwner.isAnnotationType) {
-
             val nonSourceAnnotations = nonSourceAnnotationsForAnnotationType(annotationsForEntries)
-
             val filteredNonSourceAnnotations = nonSourceAnnotations.filter { nonSourceAnnotation ->
                 annotationsForEntries.all { sourceAnnotation ->
                     nonSourceAnnotation.qualifiedName != sourceAnnotation.qualifiedName
@@ -85,14 +84,12 @@ abstract class KtLightModifierList<out T : KtLightElement<KtModifierListOwner, P
         }
 
         if (fastCheckIsNullabilityApplied(modifierListOwner)) {
-
             val nullabilityAnnotation = when (modifierListOwner) {
                 is KtUltraLightElementWithNullabilityAnnotation<*, *> -> KtUltraLightNullabilityAnnotation(modifierListOwner, this)
                 else -> KtLightNullabilityAnnotation(modifierListOwner as KtLightElement<*, PsiModifierListOwner>, this)
             }
 
-            return annotationsForEntries +
-                    (if (nullabilityAnnotation.qualifiedName != null) listOf(nullabilityAnnotation) else emptyList())
+            return annotationsForEntries + if (nullabilityAnnotation.qualifiedName != null) listOf(nullabilityAnnotation) else emptyList()
         }
 
         return annotationsForEntries
@@ -104,7 +101,6 @@ class KtUltraLightSimpleModifierList(
     private val modifiers: Set<String>,
 ) : KtUltraLightModifierListBase<KtLightElement<KtModifierListOwner, PsiModifierListOwner>>(owner) {
     override fun hasModifierProperty(name: String) = name in modifiers
-
     override fun copy() = KtUltraLightSimpleModifierList(owner, modifiers)
 }
 
@@ -116,11 +112,9 @@ abstract class KtUltraLightModifierList<out T : KtLightElement<KtModifierListOwn
     protected open fun PsiAnnotation.additionalConverter(): KtLightAbstractAnnotation? = null
 
     override fun nonSourceAnnotationsForAnnotationType(sourceAnnotations: List<PsiAnnotation>): List<KtLightAbstractAnnotation> {
-
         if (sourceAnnotations.isEmpty()) return listOf(createRetentionRuntimeAnnotation(support, this))
 
         return mutableListOf<KtLightAbstractAnnotation>().also { result ->
-
             sourceAnnotations.mapNotNullTo(result) { sourceAnnotation ->
                 sourceAnnotation.additionalConverter()
                     ?: sourceAnnotation.tryConvertAsTarget(support)
@@ -139,26 +133,18 @@ abstract class KtUltraLightModifierList<out T : KtLightElement<KtModifierListOwn
 abstract class KtUltraLightModifierListBase<out T : KtLightElement<KtModifierListOwner, PsiModifierListOwner>>(
     owner: T
 ) : KtLightModifierList<T>(owner) {
-
     override val clsDelegate: PsiModifierList get() = invalidAccess()
-
     private fun throwInvalidOperation(): Nothing = throw IncorrectOperationException()
-
     override fun setModifierProperty(name: String, value: Boolean): Unit = throwInvalidOperation()
-
     override fun checkSetModifierProperty(name: String, value: Boolean): Unit = throwInvalidOperation()
-
     override fun addAnnotation(qualifiedName: String): PsiAnnotation = throwInvalidOperation()
-
     override fun nonSourceAnnotationsForAnnotationType(sourceAnnotations: List<PsiAnnotation>): List<KtLightAbstractAnnotation> =
         emptyList()
 }
 
-class KtLightSimpleModifierList(
-    owner: KtLightElement<KtModifierListOwner, PsiModifierListOwner>, private val modifiers: Set<String>
-) : KtLightModifierList<KtLightElement<KtModifierListOwner, PsiModifierListOwner>>(owner) {
+class KtLightSimpleModifierList(owner: KtLightElement<KtModifierListOwner, PsiModifierListOwner>, private val modifiers: Set<String>) :
+    KtLightModifierList<KtLightElement<KtModifierListOwner, PsiModifierListOwner>>(owner) {
     override fun hasModifierProperty(name: String) = name in modifiers
-
     override fun copy() = KtLightSimpleModifierList(owner, modifiers)
 }
 
@@ -230,6 +216,7 @@ private fun getAnnotationDescriptors(
     val annotatedDescriptor = when {
         descriptor is ClassDescriptor && annotatedLightElement is KtLightMethod && annotatedLightElement.isConstructor ->
             descriptor.unsubstitutedPrimaryConstructor
+
         descriptor !is PropertyDescriptor -> descriptor
         annotatedLightElement is KtLightFieldImpl.KtLightEnumConstant -> descriptor
         annotatedLightElement is KtLightField -> descriptor.backingField
@@ -251,14 +238,8 @@ private fun getAnnotationDescriptors(
     return annotations
 }
 
-private fun hasAnnotationsInSource(declaration: KtAnnotated): Boolean {
-    if (declaration.annotationEntries.isNotEmpty()) {
-        return true
-    }
-
-    if (declaration is KtProperty) {
-        return declaration.accessors.any { hasAnnotationsInSource(it) }
-    }
-
-    return false
+private fun hasAnnotationsInSource(declaration: KtAnnotated): Boolean = when {
+    declaration.annotationEntries.isNotEmpty() -> true
+    declaration is KtProperty -> declaration.accessors.any { hasAnnotationsInSource(it) }
+    else -> false
 }

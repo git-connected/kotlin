@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2017 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -52,10 +52,7 @@ interface LightClassDataHolder {
 interface LightClassData {
     val clsDelegate: PsiClass
 
-    val supertypes: Array<PsiClassType>
-        get() {
-            return clsDelegate.superTypes
-        }
+    val supertypes: Array<PsiClassType> get() = clsDelegate.superTypes
 
     fun getOwnFields(containingClass: KtLightClass): List<KtLightField>
     fun getOwnMethods(containingClass: KtLightClass): List<KtLightMethod>
@@ -68,14 +65,9 @@ class LightClassDataImpl(override val clsDelegate: PsiClass) : LightClassData {
 }
 
 object InvalidLightClassDataHolder : LightClassDataHolder.ForClass {
-    override val javaFileStub: PsiJavaFileStub
-        get() = shouldNotBeCalled()
-
-    override val extraDiagnostics: Diagnostics
-        get() = shouldNotBeCalled()
-
+    override val javaFileStub: PsiJavaFileStub get() = shouldNotBeCalled()
+    override val extraDiagnostics: Diagnostics get() = shouldNotBeCalled()
     override fun findData(findDelegate: (PsiJavaFileStub) -> PsiClass) = shouldNotBeCalled()
-
     private fun shouldNotBeCalled(): Nothing = throw UnsupportedOperationException("Should not be called")
 }
 
@@ -106,11 +98,9 @@ fun PsiJavaFileStub.findDelegate(classOrObject: KtClassOrObject): PsiClass {
         .withAttachment("stub text", stubFileText)
 }
 
-fun PsiJavaFileStub.findDelegate(classFqName: FqName): PsiClass {
-    return findClass(this) {
-        classFqName.asString() == it.qualifiedName
-    } ?: throw IllegalStateException("Facade class $classFqName not found; classes in Java file stub: ${collectClassNames(this)}")
-}
+fun PsiJavaFileStub.findDelegate(classFqName: FqName): PsiClass = findClass(this) {
+    classFqName.asString() == it.qualifiedName
+} ?: throw IllegalStateException("Facade class $classFqName not found; classes in Java file stub: ${collectClassNames(this)}")
 
 
 private fun collectClassNames(javaFileStub: PsiJavaFileStub): String {
@@ -119,5 +109,6 @@ private fun collectClassNames(javaFileStub: PsiJavaFileStub): String {
         names.add(cls.qualifiedName ?: "<null>")
         false
     }
+
     return names.joinToString(prefix = "[", postfix = "]")
 }

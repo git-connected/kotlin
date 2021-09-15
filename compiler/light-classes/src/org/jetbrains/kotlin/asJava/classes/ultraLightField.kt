@@ -31,6 +31,7 @@ import org.jetbrains.kotlin.name.JvmNames.VOLATILE_ANNOTATION_FQ_NAME
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.jvm.diagnostics.JvmDeclarationOriginKind
 import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 
 private class KtUltraLightFieldModifierList(
     support: KtUltraLightSupport,
@@ -87,8 +88,8 @@ internal open class KtUltraLightFieldImpl protected constructor(
     protected val declaration: KtNamedDeclaration,
     name: String,
     private val containingClass: KtLightClass,
-    private val support: KtUltraLightSupport,
-    modifiers: Set<String>,
+    protected val support: KtUltraLightSupport,
+    protected val modifiers: Set<String>,
 ) : LightFieldBuilder(name, PsiType.NULL, declaration), KtLightField,
     KtUltraLightElementWithNullabilityAnnotation<KtDeclaration, PsiField> {
 
@@ -113,38 +114,29 @@ internal open class KtUltraLightFieldImpl protected constructor(
     private val kotlinType: KotlinType?
         get() = when {
             declaration is KtProperty && declaration.hasDelegate() ->
-                declaration.delegateExpression?.let {
-                    LightClassGenerationSupport.getInstance(project).analyze(it).getType(it)
-                }
-            declaration is KtObjectDeclaration ->
-                (declaration.resolve() as? ClassDescriptor)?.defaultType
-            declaration is KtEnumEntry -> {
-                (containingClass.kotlinOrigin?.resolve() as? ClassDescriptor)?.defaultType
-            }
-            else -> {
-                declaration.getKotlinType()
-            }
+                declaration.delegateExpression?.let { LightClassGenerationSupport.getInstance(project).analyze(it).getType(it) }
+
+            declaration is KtObjectDeclaration -> declaration.resolve()?.safeAs<ClassDescriptor>()?.defaultType
+            declaration is KtEnumEntry -> containingClass.kotlinOrigin?.resolve()?.safeAs<ClassDescriptor>()?.defaultType
+            else -> declaration.getKotlinType()
         }
 
     override val qualifiedNameForNullabilityAnnotation: String?
-        get() =
-            when (declaration) {
-                is KtObjectDeclaration -> NotNull::class.java.name
-                is KtEnumEntry -> null
-                else -> computeQualifiedNameForNullabilityAnnotation(kotlinType)
-            }
+        get() = when (declaration) {
+            is KtObjectDeclaration -> NotNull::class.java.name
+            is KtEnumEntry -> null
+            else -> computeQualifiedNameForNullabilityAnnotation(kotlinType)
+        }
 
-    override val psiTypeForNullabilityAnnotation: PsiType?
-        get() = type
+    override val psiTypeForNullabilityAnnotation: PsiType? get() = type
 
     private val _type: PsiType by lazyPub {
         fun nonExistent() = JavaPsiFacade.getElementFactory(project).createTypeFromText("error.NonExistentClass", declaration)
 
         when {
             (declaration is KtProperty && declaration.hasDelegate()) || declaration is KtEnumEntry || declaration is KtObjectDeclaration ->
-                kotlinType?.asPsiType(support, TypeMappingMode.DEFAULT, this)
-                    ?.let(TypeConversionUtil::erasure)
-                    ?: nonExistent()
+                kotlinType?.asPsiType(support, TypeMappingMode.DEFAULT, this)?.let(TypeConversionUtil::erasure) ?: nonExistent()
+
             else -> {
                 val kotlinType = declaration.getKotlinType() ?: return@lazyPub PsiType.NULL
                 val descriptor = variableDescriptor ?: return@lazyPub PsiType.NULL
@@ -161,9 +153,7 @@ internal open class KtUltraLightFieldImpl protected constructor(
     override fun getContainingClass() = containingClass
     override fun getContainingFile(): PsiFile? = containingClass.containingFile
 
-    private val _initializer by lazyPub {
-        _constantInitializer?.createPsiLiteral(declaration)
-    }
+    private val _initializer by lazyPub { _constantInitializer?.createPsiLiteral(declaration) }
 
     override fun getInitializer(): PsiExpression? = _initializer
 
@@ -188,10 +178,7 @@ internal open class KtUltraLightFieldImpl protected constructor(
 
     override val lightMemberOrigin = LightMemberOriginForDeclaration(declaration, JvmDeclarationOriginKind.OTHER)
 
-    override fun setName(@NonNls name: String): PsiElement {
-        (kotlinOrigin as? KtNamedDeclaration)?.setName(name)
-        return this
-    }
+    override fun setName(@NonNls name: String): PsiElement = also { kotlinOrigin.safeAs<KtNamedDeclaration>()?.setName(name) }
 
     override fun setInitializer(initializer: PsiExpression?) = cannotModify()
 }

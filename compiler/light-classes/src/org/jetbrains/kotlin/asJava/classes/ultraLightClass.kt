@@ -47,12 +47,13 @@ import org.jetbrains.kotlin.resolve.constants.EnumValue
 import org.jetbrains.kotlin.resolve.jvm.diagnostics.JvmDeclarationOriginKind
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
+import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 
 open class KtUltraLightClass(classOrObject: KtClassOrObject, internal val support: KtUltraLightSupport) :
     KtLightClassImpl(classOrObject, support.languageVersionSettings.getFlag(JvmAnalysisFlags.jvmDefaultMode)) {
 
     private class KtUltraLightClassModifierList(
-        private val containingClass: KtLightClassForSourceDeclaration,
+        containingClass: KtLightClassForSourceDeclaration,
         support: KtUltraLightSupport,
         private val computeModifiers: () -> Set<String>
     ) : KtUltraLightModifierList<KtLightClassForSourceDeclaration>(containingClass, support) {
@@ -61,7 +62,7 @@ open class KtUltraLightClass(classOrObject: KtClassOrObject, internal val suppor
         override fun hasModifierProperty(name: String): Boolean =
             if (name != PsiModifier.FINAL) name in modifiers else owner.isFinal(PsiModifier.FINAL in modifiers)
 
-        override fun copy(): PsiElement = KtUltraLightClassModifierList(containingClass, support, computeModifiers)
+        override fun copy(): PsiElement = KtUltraLightClassModifierList(owner, support, computeModifiers)
     }
 
 
@@ -104,7 +105,6 @@ open class KtUltraLightClass(classOrObject: KtClassOrObject, internal val suppor
     override fun createImplementsList(): PsiReferenceList? = createInheritanceList(forExtendsList = false)
 
     private fun createInheritanceList(forExtendsList: Boolean): PsiReferenceList {
-
         val role = if (forExtendsList) PsiReferenceList.Role.EXTENDS_LIST else PsiReferenceList.Role.IMPLEMENTS_LIST
 
         if (isAnnotationType) return KotlinLightReferenceListBuilder(manager, language, role)
@@ -131,7 +131,6 @@ open class KtUltraLightClass(classOrObject: KtClassOrObject, internal val suppor
     }
 
     private fun addTypeToTypeList(listBuilder: KotlinSuperTypeListBuilder, superType: KotlinType) {
-
         val mappedType = mapSupertype(superType, kotlinCollectionAsIs = true) ?: return
 
         listBuilder.addReference(mappedType)
@@ -180,7 +179,6 @@ open class KtUltraLightClass(classOrObject: KtClassOrObject, internal val suppor
     override fun getLBrace(): PsiElement? = null
 
     private val _ownFields: List<KtLightField> by lazyPub {
-
         val result = arrayListOf<KtLightField>()
         val usedNames = hashSetOf<String>()
 
@@ -334,7 +332,8 @@ open class KtUltraLightClass(classOrObject: KtClassOrObject, internal val suppor
                 ownMethods(),
                 classOrObject.getExternalDependencies()
             )
-        }, false
+        },
+        false,
     )
 
     private fun addMethodsFromDataClass(result: MutableList<KtLightMethod>) {
@@ -357,25 +356,15 @@ open class KtUltraLightClass(classOrObject: KtClassOrObject, internal val suppor
                 result.add(createGeneratedMethodFromDescriptor(descriptor, JvmDeclarationOriginKind.OTHER, declarationForOrigin))
             }
 
-            override fun generateComponentFunction(function: FunctionDescriptor, parameter: ValueParameterDescriptor) {
+            override fun generateComponentFunction(function: FunctionDescriptor, parameter: ValueParameterDescriptor) =
                 addFunction(function, DescriptorToSourceUtils.descriptorToDeclaration(parameter) as? KtDeclaration)
-            }
 
-            override fun generateCopyFunction(function: FunctionDescriptor, constructorParameters: List<KtParameter>) {
+            override fun generateCopyFunction(function: FunctionDescriptor, constructorParameters: List<KtParameter>) =
                 addFunction(function)
-            }
 
-            override fun generateToStringMethod(function: FunctionDescriptor, properties: List<PropertyDescriptor>) {
-                addFunction(function)
-            }
-
-            override fun generateHashCodeMethod(function: FunctionDescriptor, properties: List<PropertyDescriptor>) {
-                addFunction(function)
-            }
-
-            override fun generateEqualsMethod(function: FunctionDescriptor, properties: List<PropertyDescriptor>) {
-                addFunction(function)
-            }
+            override fun generateToStringMethod(function: FunctionDescriptor, properties: List<PropertyDescriptor>) = addFunction(function)
+            override fun generateHashCodeMethod(function: FunctionDescriptor, properties: List<PropertyDescriptor>) = addFunction(function)
+            override fun generateEqualsMethod(function: FunctionDescriptor, properties: List<PropertyDescriptor>) = addFunction(function)
         }.generate()
     }
 
@@ -398,13 +387,13 @@ open class KtUltraLightClass(classOrObject: KtClassOrObject, internal val suppor
 
         for (delegate in DelegationResolver.getDelegates(classDescriptor, superClassDescriptor, delegationType).keys) {
             when (delegate) {
-
                 is PropertyDescriptor -> delegate.accessors.mapTo(result) {
                     createGeneratedMethodFromDescriptor(
                         descriptor = it,
                         declarationOriginKindForOrigin = JvmDeclarationOriginKind.DELEGATION
                     )
                 }
+
                 is FunctionDescriptor -> result.add(
                     createGeneratedMethodFromDescriptor(
                         descriptor = delegate,
@@ -415,39 +404,38 @@ open class KtUltraLightClass(classOrObject: KtClassOrObject, internal val suppor
         }
     }
 
-    private fun createConstructors(): List<KtLightMethod> {
-        val result = arrayListOf<KtLightMethod>()
+    private fun createConstructors(): List<KtLightMethod> = mutableListOf<KtLightMethod>().apply {
         val constructors = classOrObject.allConstructors
         if (constructors.isEmpty()) {
-            result.add(defaultConstructor())
+            add(defaultConstructor())
         }
+
         for (constructor in constructors.filterNot { isHiddenByDeprecation(it) }) {
-            result.addAll(membersBuilder.createMethods(constructor, false, forcePrivate = isEnum))
+            addAll(membersBuilder.createMethods(constructor, false, forcePrivate = isEnum))
         }
+
         val primary = classOrObject.primaryConstructor
         if (primary != null && shouldGenerateNoArgOverload(primary)) {
-            result.add(noArgConstructor(primary.simpleVisibility(), primary, METHOD_INDEX_FOR_NO_ARG_OVERLOAD_CTOR))
+            add(noArgConstructor(primary.simpleVisibility(), primary, METHOD_INDEX_FOR_NO_ARG_OVERLOAD_CTOR))
         }
-        return result
     }
 
-    private fun shouldGenerateNoArgOverload(primary: KtPrimaryConstructor): Boolean {
-        return !primary.hasModifier(PRIVATE_KEYWORD) &&
-                !classOrObject.hasModifier(INNER_KEYWORD) && !isEnum &&
-                !classOrObject.hasModifier(SEALED_KEYWORD) &&
-                primary.valueParameters.isNotEmpty() &&
-                primary.valueParameters.all { it.defaultValue != null } &&
-                classOrObject.allConstructors.none { it.valueParameters.isEmpty() } &&
-                !primary.hasAnnotation(JVM_OVERLOADS_FQ_NAME)
-    }
+    private fun shouldGenerateNoArgOverload(primary: KtPrimaryConstructor): Boolean = !primary.hasModifier(PRIVATE_KEYWORD) &&
+            !classOrObject.hasModifier(INNER_KEYWORD) &&
+            !isEnum &&
+            !classOrObject.hasModifier(SEALED_KEYWORD) &&
+            primary.valueParameters.isNotEmpty() &&
+            primary.valueParameters.all { it.defaultValue != null } &&
+            classOrObject.allConstructors.none { it.valueParameters.isEmpty() } &&
+            !primary.hasAnnotation(JVM_OVERLOADS_FQ_NAME)
 
     private fun defaultConstructor(): KtUltraLightMethod {
-        val visibility =
-            when {
-                classOrObject is KtObjectDeclaration || classOrObject.hasModifier(SEALED_KEYWORD) || isEnum -> PsiModifier.PRIVATE
-                classOrObject is KtEnumEntry -> PsiModifier.PACKAGE_LOCAL
-                else -> PsiModifier.PUBLIC
-            }
+        val visibility = when {
+            classOrObject is KtObjectDeclaration || classOrObject.hasModifier(SEALED_KEYWORD) || isEnum -> PsiModifier.PRIVATE
+            classOrObject is KtEnumEntry -> PsiModifier.PACKAGE_LOCAL
+            else -> PsiModifier.PUBLIC
+        }
+
         return noArgConstructor(visibility, classOrObject, METHOD_INDEX_FOR_DEFAULT_CTOR)
     }
 
@@ -455,18 +443,17 @@ open class KtUltraLightClass(classOrObject: KtClassOrObject, internal val suppor
         visibility: String,
         declaration: KtDeclaration,
         methodIndex: Int
-    ): KtUltraLightMethod =
-        KtUltraLightMethodForSourceDeclaration(
-            LightMethodBuilder(manager, language, name.orEmpty()).setConstructor(true).addModifier(visibility),
-            declaration,
-            support,
-            this,
-            methodIndex
-        )
+    ): KtUltraLightMethod = KtUltraLightMethodForSourceDeclaration(
+        LightMethodBuilder(manager, language, name.orEmpty()).setConstructor(true).addModifier(visibility),
+        declaration,
+        support,
+        this,
+        methodIndex
+    )
 
     private fun isHiddenByDeprecation(declaration: KtDeclaration): Boolean {
         val deprecated = support.findAnnotation(declaration, FqName("kotlin.Deprecated"))?.second
-        return (deprecated?.argumentValue("level") as? EnumValue)?.enumEntryName?.asString() == "HIDDEN"
+        return deprecated?.argumentValue("level")?.safeAs<EnumValue>()?.enumEntryName?.asString() == "HIDDEN"
     }
 
     private fun isJvmStatic(declaration: KtAnnotated): Boolean = declaration.hasAnnotation(JVM_STATIC_ANNOTATION_FQ_NAME)
@@ -475,15 +462,13 @@ open class KtUltraLightClass(classOrObject: KtClassOrObject, internal val suppor
 
     private fun KtAnnotated.hasAnnotation(name: FqName) = support.findAnnotation(this, name) != null
 
-    private fun KtCallableDeclaration.isConstOrJvmField() =
-        hasModifier(CONST_KEYWORD) || isJvmField()
+    private fun KtCallableDeclaration.isConstOrJvmField() = hasModifier(CONST_KEYWORD) || isJvmField()
 
     private fun KtCallableDeclaration.isJvmField() = hasAnnotation(JvmAbi.JVM_FIELD_ANNOTATION_FQ_NAME)
 
     override fun getInitializers(): Array<PsiClassInitializer> = emptyArray()
 
     override fun getContainingClass(): PsiClass? {
-
         val containingBody = classOrObject.parent as? KtClassBody
         val containingClass = containingBody?.parent as? KtClassOrObject
         containingClass?.let { return create(it, jvmDefaultMode) }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -42,15 +42,11 @@ class FacadeCache(private val project: Project) {
         }, false
     )
 
-    operator fun get(qualifiedName: FqName, searchScope: GlobalSearchScope): KtLightClassForFacade? {
-        synchronized(cachedValue) {
-            return cachedValue.value.cache.get(FacadeCacheKey(qualifiedName, searchScope)).value
-        }
+    operator fun get(qualifiedName: FqName, searchScope: GlobalSearchScope): KtLightClassForFacade? = synchronized(cachedValue) {
+        cachedValue.value.cache.get(FacadeCacheKey(qualifiedName, searchScope)).value
     }
 
     companion object {
-        fun getInstance(project: Project): FacadeCache {
-            return ServiceManager.getService(project, FacadeCache::class.java)
-        }
+        fun getInstance(project: Project): FacadeCache = ServiceManager.getService(project, FacadeCache::class.java)
     }
 }

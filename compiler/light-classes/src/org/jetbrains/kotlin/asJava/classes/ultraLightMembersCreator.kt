@@ -35,7 +35,7 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.descriptorUtil.isPublishedApi
 import org.jetbrains.kotlin.resolve.inline.isInlineOnly
-import org.jetbrains.kotlin.resolve.jvm.annotations.*
+import org.jetbrains.kotlin.resolve.jvm.annotations.hasJvmSyntheticAnnotation
 import org.jetbrains.kotlin.resolve.jvm.diagnostics.JvmDeclarationOriginKind
 
 internal class UltraLightMembersCreator(
@@ -239,10 +239,7 @@ internal class UltraLightMembersCreator(
             !ktDeclaration.hasDeclaredReturnType()
         ) return PsiType.VOID
 
-        val desc =
-            ktDeclaration.resolve()?.getterIfProperty() as? CallableDescriptor
-                ?: return PsiType.NULL
-
+        val desc = ktDeclaration.resolve()?.getterIfProperty() as? CallableDescriptor ?: return PsiType.NULL
         return support.mapType(desc.returnType, wrapper) { typeMapper, signatureWriter ->
             typeMapper.mapReturnType(desc, signatureWriter)
         }
@@ -258,7 +255,6 @@ internal class UltraLightMembersCreator(
         private val forceStatic: Boolean,
         private val forcePrivate: Boolean = false
     ) : LightModifierList(declaration.manager, declaration.language) {
-
         override fun hasModifierProperty(name: String): Boolean {
 
             val hasModifierByDeclaration = hasModifier(name)
@@ -515,7 +511,6 @@ internal class UltraLightMembersCreator(
                         property = declaration,
                         support = support,
                         method = setterWrapper,
-                        containingDeclaration = declaration
                     )
             )
             result.add(setterWrapper)
@@ -523,19 +518,15 @@ internal class UltraLightMembersCreator(
         return result
     }
 
-    private fun KtCallableDeclaration.hasReifiedParameters(): Boolean =
-        typeParameters.any { it.hasModifier(REIFIED_KEYWORD) }
+    private fun KtCallableDeclaration.hasReifiedParameters(): Boolean = typeParameters.any { it.hasModifier(REIFIED_KEYWORD) }
 
-    private fun KtCallableDeclaration.isConstOrJvmField() =
-        hasModifier(CONST_KEYWORD) || isJvmField()
+    private fun KtCallableDeclaration.isConstOrJvmField() = hasModifier(CONST_KEYWORD) || isJvmField()
 
     private fun KtCallableDeclaration.isJvmField() = hasAnnotation(JvmAbi.JVM_FIELD_ANNOTATION_FQ_NAME)
 
-    private fun isFinal(declaration: KtDeclaration): Boolean {
-        if (declaration.hasModifier(FINAL_KEYWORD)) return true
-        return declaration !is KtPropertyAccessor &&
-                !declaration.hasModifier(OPEN_KEYWORD) &&
-                !declaration.hasModifier(OVERRIDE_KEYWORD) &&
-                !declaration.hasModifier(ABSTRACT_KEYWORD)
-    }
+    private fun isFinal(declaration: KtDeclaration): Boolean = declaration.hasModifier(FINAL_KEYWORD) ||
+            declaration !is KtPropertyAccessor &&
+            !declaration.hasModifier(OPEN_KEYWORD) &&
+            !declaration.hasModifier(OVERRIDE_KEYWORD) &&
+            !declaration.hasModifier(ABSTRACT_KEYWORD)
 }

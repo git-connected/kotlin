@@ -1,11 +1,10 @@
 /*
- * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.asJava.classes
 
-import com.intellij.openapi.util.Comparing
 import com.intellij.openapi.util.Key
 import com.intellij.psi.*
 import com.intellij.psi.impl.PsiSuperMethodImplUtil
@@ -37,21 +36,17 @@ open class KtLightClassForScript(val script: KtScript) : KtLazyLightClass(script
     protected open fun getLightClassDataHolder(): LightClassDataHolder.ForScript =
         getLightClassCachedValue(script).value
 
-    override val lightClassData: LightClassData
-        get() = getLightClassDataHolder().findDataForScript(script.fqName)
+    override val lightClassData: LightClassData get() = getLightClassDataHolder().findDataForScript(script.fqName)
 
-    protected open val javaFileStub: PsiJavaFileStub?
-        get() = getLightClassDataHolder().javaFileStub
+    protected open val javaFileStub: PsiJavaFileStub? get() = getLightClassDataHolder().javaFileStub
 
-    private val hashCode: Int = computeHashCode()
+    private val _hashCode: Int by lazyPub { computeHashCode() }
 
-    private val packageFqName: FqName = script.fqName.parent()
+    private val _modifierList: PsiModifierList by lazyPub { LightModifierList(manager, KotlinLanguage.INSTANCE, PsiModifier.PUBLIC) }
 
-    private val modifierList: PsiModifierList = LightModifierList(manager, KotlinLanguage.INSTANCE, PsiModifier.PUBLIC)
+    private val _scriptImplementsList: LightEmptyImplementsList by lazyPub { LightEmptyImplementsList(manager) }
 
-    private val scriptImplementsList: LightEmptyImplementsList = LightEmptyImplementsList(manager)
-
-    private val scriptExtendsList: PsiReferenceList by lazyPub {
+    private val _scriptExtendsList: PsiReferenceList by lazyPub {
         KotlinLightReferenceListBuilder(manager, PsiReferenceList.Role.EXTENDS_LIST).also {
             it.addReference("kotlin.script.templates.standard.ScriptTemplateWithArgs")
         }
@@ -62,17 +57,17 @@ open class KtLightClassForScript(val script: KtScript) : KtLazyLightClass(script
             script.containingKtFile,
             lightClass = { this },
             stub = { javaFileStub },
-            packageFqName = packageFqName,
+            packageFqName = script.fqName.parent(),
         )
     }
 
     override val kotlinOrigin: KtClassOrObject? get() = null
 
-    val fqName: FqName = script.fqName
+    val fqName: FqName get() = script.fqName
 
-    override fun getModifierList() = modifierList
+    override fun getModifierList() = _modifierList
 
-    override fun hasModifierProperty(@NonNls name: String) = modifierList.hasModifierProperty(name)
+    override fun hasModifierProperty(@NonNls name: String) = _modifierList.hasModifierProperty(name)
 
     override fun isDeprecated() = false
 
@@ -94,28 +89,27 @@ open class KtLightClassForScript(val script: KtScript) : KtLazyLightClass(script
 
     override fun getDocComment() = null
 
-    override fun getImplementsList(): PsiReferenceList = scriptImplementsList
+    override fun getImplementsList(): PsiReferenceList = _scriptImplementsList
 
-    override fun getExtendsList(): PsiReferenceList = scriptExtendsList
+    override fun getExtendsList(): PsiReferenceList = _scriptExtendsList
 
     override fun getImplementsListTypes(): Array<PsiClassType> = PsiClassType.EMPTY_ARRAY
 
     override fun getInterfaces(): Array<PsiClass> = PsiClass.EMPTY_ARRAY
 
-    override fun getOwnInnerClasses(): List<PsiClass> {
-        return script.declarations.filterIsInstance<KtClassOrObject>()
-            // workaround for ClassInnerStuffCache not supporting classes with null names, see KT-13927
-            // inner classes with null names can't be searched for and can't be used from java anyway
-            // we can't prohibit creating light classes with null names either since they can contain members
-            .filter { it.name != null }
-            .mapNotNull { KtLightClassForSourceDeclaration.create(it, JvmDefaultMode.DEFAULT) }
-    }
+    override fun getOwnInnerClasses(): List<PsiClass> = script.declarations
+        .filterIsInstance<KtClassOrObject>()
+        // workaround for ClassInnerStuffCache not supporting classes with null names, see KT-13927
+        // inner classes with null names can't be searched for and can't be used from java anyway
+        // we can't prohibit creating light classes with null names either since they can contain members
+        .filter { it.name != null }
+        .mapNotNull { KtLightClassForSourceDeclaration.create(it, JvmDefaultMode.DEFAULT) }
 
     override fun getInitializers(): Array<PsiClassInitializer> = PsiClassInitializer.EMPTY_ARRAY
 
-    override fun getName() = script.fqName.shortName().asString()
+    override fun getName() = fqName.shortName().asString()
 
-    override fun getQualifiedName() = script.fqName.asString()
+    override fun getQualifiedName() = fqName.asString()
 
     override fun isValid() = script.isValid
 
@@ -123,9 +117,8 @@ open class KtLightClassForScript(val script: KtScript) : KtLazyLightClass(script
 
     override fun getNavigationElement() = script
 
-    override fun isEquivalentTo(another: PsiElement?): Boolean =
-        equals(another) ||
-                (another is KtLightClassForScript && fqName == another.fqName)
+    override fun isEquivalentTo(another: PsiElement?): Boolean = equals(another) ||
+            (another is KtLightClassForScript && fqName == another.fqName)
 
     override fun getElementIcon(flags: Int): Icon? =
         throw UnsupportedOperationException("This should be done by JetIconProvider")
@@ -140,23 +133,16 @@ open class KtLightClassForScript(val script: KtScript) : KtLazyLightClass(script
 
     override fun setName(name: String): PsiElement? = throw IncorrectOperationException()
 
-    override fun isInheritor(baseClass: PsiClass, checkDeep: Boolean): Boolean {
-        return baseClass.qualifiedName == CommonClassNames.JAVA_LANG_OBJECT
-    }
+    override fun isInheritor(baseClass: PsiClass, checkDeep: Boolean): Boolean =
+        baseClass.qualifiedName == CommonClassNames.JAVA_LANG_OBJECT
 
     override fun isInheritorDeep(baseClass: PsiClass?, classToByPass: PsiClass?): Boolean = false
 
-    override fun getSuperClass(): PsiClass? {
-        return JavaPsiFacade.getInstance(project).findClass(CommonClassNames.JAVA_LANG_OBJECT, resolveScope)
-    }
+    override fun getSuperClass(): PsiClass? = JavaPsiFacade.getInstance(project).findClass(CommonClassNames.JAVA_LANG_OBJECT, resolveScope)
 
-    override fun getSupers(): Array<PsiClass> {
-        return superClass?.let { arrayOf(it) } ?: arrayOf()
-    }
+    override fun getSupers(): Array<PsiClass> = superClass?.let { arrayOf(it) } ?: arrayOf()
 
-    override fun getSuperTypes(): Array<PsiClassType> {
-        return arrayOf(PsiType.getJavaLangObject(manager, resolveScope))
-    }
+    override fun getSuperTypes(): Array<PsiClassType> = arrayOf(PsiType.getJavaLangObject(manager, resolveScope))
 
     override fun getNameIdentifier(): PsiIdentifier? = null
 
@@ -164,7 +150,7 @@ open class KtLightClassForScript(val script: KtScript) : KtLazyLightClass(script
 
     override fun getScope(): PsiElement = parent
 
-    override fun hashCode() = hashCode
+    override fun hashCode() = _hashCode
 
     private fun computeHashCode(): Int {
         var result = manager.hashCode()
@@ -173,14 +159,12 @@ open class KtLightClassForScript(val script: KtScript) : KtLazyLightClass(script
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other == null || this::class.java != other::class.java) {
-            return false
-        }
+        if (other == null || this::class.java != other::class.java) return false
 
         val lightClass = other as? KtLightClassForScript ?: return false
         if (this === other) return true
 
-        if (this.hashCode != lightClass.hashCode) return false
+        if (this._hashCode != lightClass._hashCode) return false
         if (manager != lightClass.manager) return false
         if (script != lightClass.script) return false
 
@@ -220,14 +204,13 @@ open class KtLightClassForScript(val script: KtScript) : KtLazyLightClass(script
             return KtLightClassForScript(script)
         }
 
-        fun getLightClassCachedValue(script: KtScript): CachedValue<LightClassDataHolder.ForScript> {
-            return script.getUserData(JAVA_API_STUB_FOR_SCRIPT) ?: createCachedValueForScript(script).also {
+        fun getLightClassCachedValue(script: KtScript): CachedValue<LightClassDataHolder.ForScript> =
+            script.getUserData(JAVA_API_STUB_FOR_SCRIPT) ?: createCachedValueForScript(script).also {
                 script.putUserData(
                     JAVA_API_STUB_FOR_SCRIPT,
                     it,
                 )
             }
-        }
 
         private fun createCachedValueForScript(script: KtScript): CachedValue<LightClassDataHolder.ForScript> =
             CachedValuesManager.getManager(script.project).createCachedValue(LightClassDataProviderForScript(script), false)

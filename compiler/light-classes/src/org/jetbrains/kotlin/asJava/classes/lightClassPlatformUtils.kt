@@ -8,6 +8,5 @@ package org.jetbrains.kotlin.asJava.classes
 import com.intellij.psi.PsiElement
 import com.intellij.psi.augment.PsiAugmentProvider
 
-internal fun <Psi : PsiElement> collectAugments(element: PsiElement, type: Class<out Psi>): List<Psi> {
-    return PsiAugmentProvider.collectAugments(element, type, null)
-}
+internal fun <Psi : PsiElement> collectAugments(element: PsiElement, type: Class<out Psi>): List<Psi> =
+    PsiAugmentProvider.collectAugments(element, type, null)

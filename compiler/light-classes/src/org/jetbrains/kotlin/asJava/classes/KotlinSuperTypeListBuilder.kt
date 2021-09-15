@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -17,7 +17,7 @@ class KotlinSuperTypeListBuilder(kotlinOrigin: KtSuperTypeList?, manager: PsiMan
     KotlinLightReferenceListBuilder(
         manager,
         language,
-        role
+        role,
     ) {
 
     private val myKotlinOrigin: KtSuperTypeList? = kotlinOrigin
@@ -26,9 +26,7 @@ class KotlinSuperTypeListBuilder(kotlinOrigin: KtSuperTypeList?, manager: PsiMan
 
         override fun getParent() = this@KotlinSuperTypeListBuilder
 
-        val kotlinOrigin by lazyPub {
-            element.qualifiedName?.let { this@KotlinSuperTypeListBuilder.myKotlinOrigin?.findEntry(it) }
-        }
+        val kotlinOrigin by lazyPub { element.qualifiedName?.let { this@KotlinSuperTypeListBuilder.myKotlinOrigin?.findEntry(it) } }
 
         override fun delete() {
             val superTypeList = this@KotlinSuperTypeListBuilder.myKotlinOrigin ?: return
@@ -37,9 +35,7 @@ class KotlinSuperTypeListBuilder(kotlinOrigin: KtSuperTypeList?, manager: PsiMan
         }
     }
 
-    private val referenceElementsCache by lazyPub {
-        super.getReferenceElements().map { KotlinSuperTypeReference(it) }.toTypedArray()
-    }
+    private val referenceElementsCache by lazyPub { super.getReferenceElements().map { KotlinSuperTypeReference(it) }.toTypedArray() }
 
     override fun getReferenceElements() = referenceElementsCache
 

@@ -1,17 +1,6 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.asJava.builder
@@ -29,22 +18,16 @@ interface LightElementOrigin {
     val originKind: JvmDeclarationOriginKind?
 
     object None : LightElementOrigin {
-        override val originalElement: PsiElement?
-            get() = null
-        override val originKind: JvmDeclarationOriginKind?
-            get() = null
-
+        override val originalElement: PsiElement? get() = null
+        override val originKind: JvmDeclarationOriginKind? get() = null
         override fun toString() = "NONE"
     }
 }
 
-fun JvmDeclarationOrigin.toLightMemberOrigin(): LightElementOrigin {
-    val originalElement = element
-    return when (originalElement) {
-        is KtAnnotationEntry -> DefaultLightElementOrigin(originalElement)
-        is KtDeclaration -> LightMemberOriginForDeclaration(originalElement, originKind, parametersForJvmOverload)
-        else -> LightElementOrigin.None
-    }
+fun JvmDeclarationOrigin.toLightMemberOrigin(): LightElementOrigin = when (val originalElement = element) {
+    is KtAnnotationEntry -> DefaultLightElementOrigin(originalElement)
+    is KtDeclaration -> LightMemberOriginForDeclaration(originalElement, originKind, parametersForJvmOverload)
+    else -> LightElementOrigin.None
 }
 
 interface LightMemberOrigin : LightElementOrigin {
@@ -69,24 +52,18 @@ data class LightMemberOriginForDeclaration(
 ) : LightMemberOrigin {
     override fun isValid(): Boolean = originalElement.isValid
 
-    override fun isEquivalentTo(other: LightMemberOrigin?): Boolean {
-        if (other !is LightMemberOriginForDeclaration) return false
-        return isEquivalentTo(other.originalElement)
-    }
+    override fun isEquivalentTo(other: LightMemberOrigin?): Boolean =
+        if (other !is LightMemberOriginForDeclaration) false
+        else isEquivalentTo(other.originalElement)
 
-    override fun isEquivalentTo(other: PsiElement?): Boolean {
-        return originalElement.isEquivalentTo(other)
-    }
+    override fun isEquivalentTo(other: PsiElement?): Boolean = originalElement.isEquivalentTo(other)
 
-    override fun copy(): LightMemberOrigin {
-        return LightMemberOriginForDeclaration(originalElement.copy() as KtDeclaration, originKind, parametersForJvmOverloads)
-    }
+    override fun copy(): LightMemberOrigin =
+        LightMemberOriginForDeclaration(originalElement.copy() as KtDeclaration, originKind, parametersForJvmOverloads)
 }
 
 data class DefaultLightElementOrigin(override val originalElement: PsiElement?) : LightElementOrigin {
     override val originKind: JvmDeclarationOriginKind? get() = null
 }
 
-fun PsiElement?.toLightClassOrigin(): LightElementOrigin {
-    return if (this != null) DefaultLightElementOrigin(this) else LightElementOrigin.None
-}
+fun PsiElement?.toLightClassOrigin(): LightElementOrigin = if (this != null) DefaultLightElementOrigin(this) else LightElementOrigin.None

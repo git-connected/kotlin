@@ -1,13 +1,11 @@
 /*
- * Copyright 2000-2017 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.asJava.elements
 
 import com.intellij.lang.Language
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.search.LocalSearchScope
@@ -15,8 +13,12 @@ import com.intellij.psi.search.SearchScope
 import com.intellij.util.IncorrectOperationException
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.kotlin.asJava.classes.lazyPub
+import org.jetbrains.kotlin.asJava.classes.runReadAction
 import org.jetbrains.kotlin.idea.KotlinLanguage
-import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.KtFunction
+import org.jetbrains.kotlin.psi.KtParameter
+import org.jetbrains.kotlin.psi.KtProperty
+import org.jetbrains.kotlin.psi.KtPropertyAccessor
 import org.jetbrains.kotlin.psi.psiUtil.isExtensionDeclaration
 
 internal class KtLightParameterImpl(
@@ -37,7 +39,7 @@ internal class KtLightParameterImpl(
 
     private val lightModifierList by lazyPub { KtLightSimpleModifierList(this, emptySet()) }
 
-    private var lightIdentifier: KtLightIdentifier? = null
+    private val _lightIdentifier by lazyPub { KtLightIdentifier(this, kotlinOrigin) }
 
     override val kotlinOrigin: KtParameter?
         get() {
@@ -70,52 +72,39 @@ internal class KtLightParameterImpl(
     override fun isValid(): Boolean = method.isValid
 
     @Throws(IncorrectOperationException::class)
-    override fun setName(@NonNls name: String): PsiElement {
-        kotlinOrigin?.setName(name)
-        return this
-    }
+    override fun setName(@NonNls name: String): PsiElement = also { kotlinOrigin?.setName(name) }
 
     override fun getContainingFile(): PsiFile = method.containingFile
 
     override fun getLanguage(): Language = KotlinLanguage.INSTANCE
 
-    override fun getUseScope(): SearchScope {
-        return kotlinOrigin?.useScope ?: LocalSearchScope(this)
-    }
+    override fun getUseScope(): SearchScope = kotlinOrigin?.useScope ?: LocalSearchScope(this)
 
     override fun getText(): String = kotlinOrigin?.text ?: ""
 
     override fun getTextRange(): TextRange = kotlinOrigin?.textRange ?: TextRange.EMPTY_RANGE
 
-    override fun getNameIdentifier(): PsiIdentifier? {
-        if (lightIdentifier == null) {
-            lightIdentifier = KtLightIdentifier(this, kotlinOrigin)
-        }
-        return lightIdentifier
-    }
+    override fun getNameIdentifier(): PsiIdentifier = _lightIdentifier
 
     override fun getParent(): PsiElement = method.parameterList
 
     override fun isEquivalentTo(another: PsiElement?): Boolean {
         if (this === another) return true
-
-        return ApplicationManager.getApplication().runReadAction(Computable<Boolean> {
+        return runReadAction {
             if (another is KtParameter) {
                 val kotlinOrigin = kotlinOrigin
-                if (kotlinOrigin?.isEquivalentTo(another) == true) return@Computable true
+                if (kotlinOrigin?.isEquivalentTo(another) == true) return@runReadAction true
             }
 
             if (another is KtLightParameterImpl) {
-                return@Computable kotlinOrigin != null && kotlinOrigin == another.kotlinOrigin && clsDelegate == another.clsDelegate
+                return@runReadAction kotlinOrigin != null && kotlinOrigin == another.kotlinOrigin && clsDelegate == another.clsDelegate
             }
 
             false
-        })
+        }
     }
 
-    override fun equals(other: Any?): Boolean {
-        return other is PsiElement && isEquivalentTo(other)
-    }
+    override fun equals(other: Any?): Boolean = other is PsiElement && isEquivalentTo(other)
 
     override fun hashCode(): Int = kotlinOrigin?.hashCode() ?: 0
 }

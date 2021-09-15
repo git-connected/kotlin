@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -45,24 +45,18 @@ class KtUltraLightClassForScript(
         )
     }
 
-    internal inner class KtUltraLightScriptMainParameter(mainMethod: KtUltraLightMethod) :
-        KtUltraLightParameter(
-            name = "args",
-            kotlinOrigin = null,
-            support = support,
-            ultraLightMethod = mainMethod
-        ) {
-
-        override fun getType(): PsiType =
-            PsiType.getJavaLangString(manager, resolveScope).createArrayType()
-
+    internal inner class KtUltraLightScriptMainParameter(mainMethod: KtUltraLightMethod) : KtUltraLightParameter(
+        name = "args",
+        kotlinOrigin = null,
+        support = support,
+        ultraLightMethod = mainMethod
+    ) {
+        override fun getType(): PsiType = PsiType.getJavaLangString(manager, resolveScope).createArrayType()
         override fun isVarArgs(): Boolean = false
-
         override val qualifiedNameForNullabilityAnnotation: String? = null
     }
 
     private fun MutableList<KtLightMethod>.addScriptDefaultMethods() {
-
         val defaultConstructorDelegate = LightMethodBuilder(manager, language, name)
             .setConstructor(true)
             .addModifier(PsiModifier.PUBLIC)
@@ -74,6 +68,7 @@ class KtUltraLightClassForScript(
             containingClass = this@KtUltraLightClassForScript,
             methodIndex = METHOD_INDEX_FOR_DEFAULT_CTOR,
         )
+
         defaultConstructorDelegate.addParameter(KtUltraLightScriptMainParameter(defaultConstructor))
         add(defaultConstructor)
 
@@ -96,20 +91,22 @@ class KtUltraLightClassForScript(
         add(mainMethod)
     }
 
-    private fun ownMethods(): List<KtLightMethod> {
-        val result = mutableListOf<KtLightMethod>()
-
-        result.addScriptDefaultMethods()
+    private fun ownMethods(): List<KtLightMethod> = mutableListOf<KtLightMethod>().apply {
+        addScriptDefaultMethods()
 
         for (declaration in script.declarations.filterNot { it.isHiddenByDeprecation(support) }) {
             when (declaration) {
-                is KtNamedFunction -> result.addAll(membersBuilder.createMethods(declaration, forceStatic = false))
-                is KtProperty -> result.addAll(
-                    membersBuilder.propertyAccessors(declaration, declaration.isVar, forceStatic = false, onlyJvmStatic = false),
+                is KtNamedFunction -> addAll(membersBuilder.createMethods(declaration, forceStatic = false))
+                is KtProperty -> addAll(
+                    membersBuilder.propertyAccessors(
+                        declaration,
+                        declaration.isVar,
+                        forceStatic = false,
+                        onlyJvmStatic = false,
+                    )
                 )
             }
         }
-        return result
     }
 
     private val _ownMethods: CachedValue<List<KtLightMethod>> = CachedValuesManager.getManager(project).createCachedValue(
@@ -125,16 +122,12 @@ class KtUltraLightClassForScript(
     override fun getOwnMethods(): List<KtLightMethod> = _ownMethods.value
 
     private val _ownFields: List<KtLightField> by lazyPub {
-
-        val result = arrayListOf<KtLightField>()
-        val usedNames = hashSetOf<String>()
-
-        for (property in script.declarations.filterIsInstance<KtProperty>()) {
-            membersBuilder
-                .createPropertyField(property, usedNames, forceStatic = false)
-                ?.let(result::add)
+        mutableListOf<KtLightField>().apply {
+            val usedNames = hashSetOf<String>()
+            for (property in script.declarations.filterIsInstance<KtProperty>()) {
+                membersBuilder.createPropertyField(property, usedNames, forceStatic = false)?.let(this::add)
+            }
         }
-        result
     }
 
     override fun getOwnFields(): List<KtLightField> = _ownFields

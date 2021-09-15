@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2018 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -7,7 +7,6 @@ package org.jetbrains.kotlin.asJava.elements
 
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.*
-import com.intellij.psi.impl.LanguageConstantExpressionEvaluator
 import com.intellij.psi.impl.light.LightIdentifier
 import com.intellij.psi.impl.light.LightTypeElement
 import org.jetbrains.kotlin.asJava.LightClassGenerationSupport
@@ -16,7 +15,10 @@ import org.jetbrains.kotlin.asJava.classes.lazyPub
 import org.jetbrains.kotlin.asJava.computeExpression
 import org.jetbrains.kotlin.builtins.jvm.JavaToKotlinClassMap
 import org.jetbrains.kotlin.name.FqNameUnsafe
-import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.KtClassLiteralExpression
+import org.jetbrains.kotlin.psi.KtElement
+import org.jetbrains.kotlin.psi.KtExpression
+import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.constants.KClassValue
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
@@ -37,7 +39,7 @@ class KtLightPsiArrayInitializerMemberValue(
 
 open class KtLightPsiLiteral(
     override val kotlinOrigin: KtExpression,
-    private val lightParent: PsiElement
+    protected val lightParent: PsiElement
 ) : KtLightElementBase(lightParent), PsiLiteralExpression {
 
     override fun getValue(): Any? = computeExpression(this)
@@ -68,12 +70,18 @@ class KtLightPsiClassObjectAccessExpression(override val kotlinOrigin: KtClassLi
     override fun getType(): PsiType {
         val bindingContext = LightClassGenerationSupport.getInstance(this.project).analyze(kotlinOrigin)
         val (classId, arrayDimensions) = bindingContext[BindingContext.COMPILE_TIME_VALUE, kotlinOrigin]
-            ?.toConstantValue(TypeUtils.NO_EXPECTED_TYPE)?.safeAs<KClassValue>()?.value
-            ?.safeAs<KClassValue.Value.NormalClass>()?.value ?: return PsiType.VOID
+            ?.toConstantValue(TypeUtils.NO_EXPECTED_TYPE)
+            ?.safeAs<KClassValue>()
+            ?.value
+            ?.safeAs<KClassValue.Value.NormalClass>()
+            ?.value
+            ?: return PsiType.VOID
+
         var type = psiType(classId.asSingleFqName().asString(), kotlinOrigin, boxPrimitiveType = arrayDimensions > 0)
         repeat(arrayDimensions) {
             type = type.createArrayType()
         }
+
         return type
     }
 
@@ -93,6 +101,7 @@ internal fun psiType(kotlinFqName: String, context: PsiElement, boxPrimitiveType
             "kotlin.Float" -> return PsiType.FLOAT
         }
     }
+
     when (kotlinFqName) {
         "kotlin.IntArray" -> return PsiType.INT.createArrayType()
         "kotlin.LongArray" -> return PsiType.LONG.createArrayType()
@@ -103,6 +112,7 @@ internal fun psiType(kotlinFqName: String, context: PsiElement, boxPrimitiveType
         "kotlin.DoubleArray" -> return PsiType.DOUBLE.createArrayType()
         "kotlin.FloatArray" -> return PsiType.FLOAT.createArrayType()
     }
+
     val javaFqName = JavaToKotlinClassMap.mapKotlinToJava(FqNameUnsafe(kotlinFqName))?.asSingleFqName()?.asString() ?: kotlinFqName
     return PsiType.getTypeByName(javaFqName, context.project, context.resolveScope)
 }
@@ -112,9 +122,7 @@ class KtLightPsiNameValuePair(
     private val name: String,
     lightParent: PsiElement,
     private val argument: (KtLightPsiNameValuePair) -> PsiAnnotationMemberValue?
-) : KtLightElementBase(lightParent),
-    PsiNameValuePair {
-
+) : KtLightElementBase(lightParent), PsiNameValuePair {
     override fun setValue(newValue: PsiAnnotationMemberValue): PsiAnnotationMemberValue = cannotModify()
 
     override fun getNameIdentifier(): PsiIdentifier? = LightIdentifier(kotlinOrigin.manager, name)
@@ -126,5 +134,4 @@ class KtLightPsiNameValuePair(
     override fun getValue(): PsiAnnotationMemberValue? = _value
 
     override fun getLiteralValue(): String? = (value as? PsiLiteralExpression)?.value?.toString()
-
 }

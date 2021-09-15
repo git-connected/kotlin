@@ -68,17 +68,18 @@ private val targetMappings = EnumMap<JvmTarget, Map<String, EnumValue>>(JvmTarge
         "kotlin.annotation.AnnotationTarget.PROPERTY_GETTER" to EnumValue(javaAnnotationElementTypeId, Name.identifier("METHOD")),
         "kotlin.annotation.AnnotationTarget.PROPERTY_SETTER" to EnumValue(javaAnnotationElementTypeId, Name.identifier("METHOD"))
     )
+
     val jdk8AndLater = HashMap(jdk6).apply {
         put("kotlin.annotation.AnnotationTarget.TYPE_PARAMETER", EnumValue(javaAnnotationElementTypeId, Name.identifier("TYPE_PARAMETER")))
         put("kotlin.annotation.AnnotationTarget.TYPE", EnumValue(javaAnnotationElementTypeId, Name.identifier("TYPE_USE")))
     }
+
     for (target in JvmTarget.values()) {
         result[target] = if (target >= JvmTarget.JVM_1_8) jdk8AndLater else jdk6
     }
 }
 
 internal fun PsiAnnotation.tryConvertAsTarget(support: KtUltraLightSupport): KtLightAbstractAnnotation? {
-
     if (FqNames.target.asString() != qualifiedName) return null
 
     val attributeValues = extractArrayAnnotationFqNames("allowedTargets")

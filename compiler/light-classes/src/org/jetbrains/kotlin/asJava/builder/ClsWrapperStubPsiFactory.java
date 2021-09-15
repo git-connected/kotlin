@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -24,7 +24,8 @@ public class ClsWrapperStubPsiFactory extends StubPsiFactory {
 
     private final StubPsiFactory delegate = new ClsStubPsiFactory();
 
-    private ClsWrapperStubPsiFactory() { }
+    private ClsWrapperStubPsiFactory() {
+    }
 
     @Override
     public PsiClass createClass(@NotNull PsiClassStub stub) {
@@ -71,8 +72,8 @@ public class ClsWrapperStubPsiFactory extends StubPsiFactory {
     }
 
     @Nullable
-    public static PsiElement getOriginalElement(@NotNull StubElement stub) {
-        LightElementOrigin origin = ((StubBase) stub).getUserData(ORIGIN);
+    public static PsiElement getOriginalElement(@NotNull StubElement<?> stub) {
+        LightElementOrigin origin = ((StubBase<?>) stub).getUserData(ORIGIN);
         return origin != null ? origin.getOriginalElement() : null;
     }
 

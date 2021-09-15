@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -18,9 +18,8 @@ internal open class KtLightClassForAnonymousDeclaration(classOrObject: KtClassOr
 
     private var cachedBaseType: SoftReference<PsiClassType>? = null
 
-    override fun getBaseClassReference(): PsiJavaCodeReferenceElement {
-        return JavaPsiFacade.getElementFactory(classOrObject.project).createReferenceElementByType(baseClassType)
-    }
+    override fun getBaseClassReference(): PsiJavaCodeReferenceElement =
+        JavaPsiFacade.getElementFactory(classOrObject.project).createReferenceElementByType(baseClassType)
 
     @Synchronized
     override fun getBaseClassType(): PsiClassType {
@@ -48,9 +47,7 @@ internal open class KtLightClassForAnonymousDeclaration(classOrObject: KtClassOr
 
     override fun getArgumentList(): PsiExpressionList? = null
 
-    override fun isInQualifiedNew(): Boolean {
-        return false
-    }
+    override fun isInQualifiedNew(): Boolean = false
 
     override fun getName(): String? = null
 
@@ -63,9 +60,7 @@ internal open class KtLightClassForAnonymousDeclaration(classOrObject: KtClassOr
         return classOrObject == aClass.classOrObject
     }
 
-    override fun hashCode(): Int {
-        return classOrObject.hashCode()
-    }
+    override fun hashCode(): Int = classOrObject.hashCode()
 
     override fun isInheritor(baseClass: PsiClass, checkDeep: Boolean): Boolean {
         if (baseClass is KtLightClassForSourceDeclaration) {

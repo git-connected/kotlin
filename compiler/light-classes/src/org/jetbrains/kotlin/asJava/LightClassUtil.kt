@@ -1,17 +1,6 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.asJava
@@ -34,16 +23,14 @@ import org.jetbrains.kotlin.utils.checkWithAttachment
 object LightClassUtil {
 
     fun findClass(stub: StubElement<*>, predicate: (PsiClassStub<*>) -> Boolean): PsiClass? {
-        if (stub is PsiClassStub<*> && predicate(stub)) {
-            return stub.psi
-        }
-
+        if (stub is PsiClassStub<*> && predicate(stub)) return stub.psi
         if (stub is PsiClassStub<*> || stub is PsiFileStub<*>) {
             for (child in stub.childrenStubs) {
                 val answer = findClass(child, predicate)
                 if (answer != null) return answer
             }
         }
+
         return null
     }
 
@@ -102,35 +89,24 @@ object LightClassUtil {
                 return field
             }
         }
+
         return null
     }
 
-    fun getLightClassPropertyMethods(parameter: KtParameter): PropertyAccessorsPsiMethods {
-        return extractPropertyAccessors(parameter, null, null)
-    }
+    fun getLightClassPropertyMethods(parameter: KtParameter): PropertyAccessorsPsiMethods = extractPropertyAccessors(parameter, null, null)
 
-    fun getLightClassMethod(function: KtFunction): PsiMethod? {
-        return getPsiMethodWrapper(function)
-    }
+    fun getLightClassMethod(function: KtFunction): PsiMethod? = getPsiMethodWrapper(function)
 
     /**
      * Returns the light method generated from the parameter of an annotation class.
      */
-    fun getLightClassMethod(parameter: KtParameter): PsiMethod? {
-        return getPsiMethodWrapper(parameter)
-    }
+    fun getLightClassMethod(parameter: KtParameter): PsiMethod? = getPsiMethodWrapper(parameter)
 
-    fun getLightClassMethods(function: KtFunction): List<PsiMethod> {
-        return getPsiMethodWrappers(function).toList()
-    }
+    fun getLightClassMethods(function: KtFunction): List<PsiMethod> = getPsiMethodWrappers(function).toList()
 
-    fun getLightClassMethodsByName(function: KtFunction, name: String): Sequence<KtLightMethod> {
-        return getPsiMethodWrappers(function, name)
-    }
+    fun getLightClassMethodsByName(function: KtFunction, name: String): Sequence<KtLightMethod> = getPsiMethodWrappers(function, name)
 
-    private fun getPsiMethodWrapper(declaration: KtDeclaration): PsiMethod? {
-        return getPsiMethodWrappers(declaration).firstOrNull()
-    }
+    private fun getPsiMethodWrapper(declaration: KtDeclaration): PsiMethod? = getPsiMethodWrappers(declaration).firstOrNull()
 
     private fun getPsiMethodWrappers(declaration: KtDeclaration, name: String? = null): Sequence<KtLightMethod> =
         getWrappingClasses(declaration).flatMap { it.methods.asSequence() }
@@ -166,6 +142,7 @@ object LightClassUtil {
             }) {
                 it.withAttachment("parent", parent.text)
             }
+
             return (parent.parent as KtClassOrObject).toLightClass()
         }
 
@@ -175,8 +152,11 @@ object LightClassUtil {
     private fun findFileFacade(ktFile: KtFile): PsiClass? {
         val fqName = ktFile.javaFileFacadeFqName
         val project = ktFile.project
-        val classesWithMatchingFqName =
-            JavaElementFinder.getInstance(project).findClasses(fqName.asString(), GlobalSearchScope.allScope(project))
+        val classesWithMatchingFqName = JavaElementFinder.getInstance(project).findClasses(
+            fqName.asString(),
+            GlobalSearchScope.allScope(project),
+        )
+
         return classesWithMatchingFqName.singleOrNull() ?: classesWithMatchingFqName.find {
             it.containingFile?.virtualFile == ktFile.virtualFile
         }
@@ -188,19 +168,17 @@ object LightClassUtil {
         if (wrapperClassOrigin is KtObjectDeclaration && wrapperClassOrigin.isCompanion() && wrapperClass.parent is PsiClass) {
             return sequenceOf(wrapperClass, wrapperClass.parent as PsiClass)
         }
+
         return sequenceOf(wrapperClass)
     }
 
-    fun canGenerateLightClass(declaration: KtDeclaration): Boolean {
-        //noinspection unchecked
-        return PsiTreeUtil.getParentOfType(declaration, KtFunction::class.java, KtProperty::class.java) == null
-    }
+    fun canGenerateLightClass(declaration: KtDeclaration): Boolean =
+        PsiTreeUtil.getParentOfType(declaration, KtFunction::class.java, KtProperty::class.java) == null
 
     private fun extractPropertyAccessors(
         ktDeclaration: KtDeclaration,
         specialGetter: PsiMethod?, specialSetter: PsiMethod?
     ): PropertyAccessorsPsiMethods {
-
         val (setters, getters) = getPsiMethodWrappers(ktDeclaration).partition { it.isSetter }
 
         val allGetters = listOfNotNull(specialGetter) + getters.filterNot { it == specialGetter }
@@ -229,6 +207,7 @@ object LightClassUtil {
                 builder.addParameter(KtLightTypeParameter(owner, i, safeName))
             }
         }
+
         return builder
     }
 
@@ -255,10 +234,8 @@ object LightClassUtil {
     }
 }
 
-fun KtNamedDeclaration.getAccessorLightMethods(): LightClassUtil.PropertyAccessorsPsiMethods {
-    return when (this) {
-        is KtProperty -> LightClassUtil.getLightClassPropertyMethods(this)
-        is KtParameter -> LightClassUtil.getLightClassPropertyMethods(this)
-        else -> throw IllegalStateException("Unexpected property type: $this")
-    }
+fun KtNamedDeclaration.getAccessorLightMethods(): LightClassUtil.PropertyAccessorsPsiMethods = when (this) {
+    is KtProperty -> LightClassUtil.getLightClassPropertyMethods(this)
+    is KtParameter -> LightClassUtil.getLightClassPropertyMethods(this)
+    else -> throw IllegalStateException("Unexpected property type: $this")
 }

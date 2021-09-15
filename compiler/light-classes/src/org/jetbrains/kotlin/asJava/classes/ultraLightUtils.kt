@@ -1,11 +1,10 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.asJava.classes
 
-import com.google.common.collect.Lists
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
@@ -25,7 +24,10 @@ import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.kotlin.asJava.LightClassGenerationSupport
 import org.jetbrains.kotlin.asJava.UltraLightClassModifierExtension
 import org.jetbrains.kotlin.asJava.builder.LightMemberOriginForDeclaration
-import org.jetbrains.kotlin.asJava.elements.*
+import org.jetbrains.kotlin.asJava.elements.KotlinLightTypeParameterListBuilder
+import org.jetbrains.kotlin.asJava.elements.KtLightAnnotationForSourceEntry
+import org.jetbrains.kotlin.asJava.elements.KtLightMethod
+import org.jetbrains.kotlin.asJava.elements.psiType
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.builtins.jvm.JavaToKotlinClassMap
@@ -143,14 +145,12 @@ private fun <D, T> buildTypeParameterList(
 }
 
 
-internal fun KtDeclaration.getKotlinType(): KotlinType? {
-    val descriptor = resolve()
-    return when (descriptor) {
-        is ValueDescriptor -> descriptor.type
-        is CallableDescriptor -> if (descriptor is FunctionDescriptor && descriptor.isSuspend)
-            descriptor.module.builtIns.nullableAnyType else descriptor.returnType
-        else -> null
-    }
+internal fun KtDeclaration.getKotlinType(): KotlinType? = when (val descriptor = resolve()) {
+    is ValueDescriptor -> descriptor.type
+    is CallableDescriptor ->
+        if (descriptor is FunctionDescriptor && descriptor.isSuspend) descriptor.module.builtIns.nullableAnyType else descriptor.returnType
+
+    else -> null
 }
 
 internal fun KtDeclaration.resolve() = LightClassGenerationSupport.getInstance(project).resolveToDescriptor(this)
@@ -171,8 +171,7 @@ internal fun KotlinType.asPsiType(
 private val setPsiTypeAnnotationProvider: (PsiType, TypeAnnotationProvider) -> Unit by lazyPub {
     val klass = PsiType::class.java
     val providerField = try {
-        klass.getDeclaredField("myAnnotationProvider")
-            .also { it.isAccessible = true }
+        klass.getDeclaredField("myAnnotationProvider").also { it.isAccessible = true }
     } catch (e: NoSuchFieldException) {
         if (ApplicationManager.getApplication().isInternal) throw e
         null
@@ -192,14 +191,12 @@ private fun annotateByKotlinType(
     psiContext: PsiElement,
     ultraLightSupport: KtUltraLightSupport
 ): PsiType {
-
-    fun KotlinType.getAnnotationsSequence(): Sequence<List<PsiAnnotation>> =
-        sequence {
-            yield(annotations.mapNotNull { it.toLightAnnotation(ultraLightSupport, psiContext) })
-            for (argument in arguments) {
-                yieldAll(argument.type.getAnnotationsSequence())
-            }
+    fun KotlinType.getAnnotationsSequence(): Sequence<List<PsiAnnotation>> = sequence {
+        yield(annotations.mapNotNull { it.toLightAnnotation(ultraLightSupport, psiContext) })
+        for (argument in arguments) {
+            yieldAll(argument.type.getAnnotationsSequence())
         }
+    }
 
     val annotationsIterator = kotlinType.getAnnotationsSequence().iterator()
     if (!annotationsIterator.hasNext()) return psiType
@@ -309,14 +306,11 @@ fun KtUltraLightClass.createGeneratedMethodFromDescriptor(
     declarationOriginKindForOrigin: JvmDeclarationOriginKind = JvmDeclarationOriginKind.OTHER,
     declarationForOrigin: KtDeclaration? = null
 ): KtLightMethod {
-
-    val kotlinOrigin =
-        declarationForOrigin
-            ?: DescriptorToSourceUtils.descriptorToDeclaration(descriptor) as? KtDeclaration
-            ?: kotlinOrigin
+    val kotlinOrigin = declarationForOrigin
+        ?: DescriptorToSourceUtils.descriptorToDeclaration(descriptor) as? KtDeclaration
+        ?: kotlinOrigin
 
     val lightMemberOrigin = LightMemberOriginForDeclaration(kotlinOrigin, declarationOriginKindForOrigin)
-
     return KtUltraLightMethodForDescriptor(descriptor, lightMethod(descriptor), lightMemberOrigin, support, this)
 }
 
@@ -392,11 +386,12 @@ internal fun KtModifierListOwner.isHiddenByDeprecation(support: KtUltraLightSupp
     val annotations = annotationEntries.filter { annotation ->
         annotation.looksLikeDeprecated()
     }
-    if (annotations.isNotEmpty()) { // some candidates found
+
+    return if (annotations.isNotEmpty()) { // some candidates found
         val deprecated = support.findAnnotation(this, StandardNames.FqNames.deprecated)?.second
-        return (deprecated?.argumentValue("level") as? EnumValue)?.enumEntryName?.asString() == "HIDDEN"
+        (deprecated?.argumentValue("level") as? EnumValue)?.enumEntryName?.asString() == "HIDDEN"
     } else {
-        return false
+        false
     }
 }
 
@@ -404,6 +399,7 @@ fun KtAnnotationEntry.looksLikeDeprecated(): Boolean {
     val arguments = valueArguments.filterIsInstance<KtValueArgument>().filterIndexed { index, valueArgument ->
         index == 2 || valueArgument.looksLikeLevelArgument() // for named/not named arguments
     }
+
     for (argument in arguments) {
         val hiddenByDotQualifiedCandidates = argument.children.filterIsInstance<KtDotQualifiedExpression>().filter {
             val lastChild = it.children.last()
@@ -412,17 +408,21 @@ fun KtAnnotationEntry.looksLikeDeprecated(): Boolean {
             else
                 false
         }
+
         val hiddenByNameReferenceExpressionCandidates = argument.children.filterIsInstance<KtNameReferenceExpression>().filter {
             it.getReferencedName() == "HIDDEN"
         }
-        if (hiddenByDotQualifiedCandidates.isNotEmpty() || hiddenByNameReferenceExpressionCandidates.isNotEmpty())
+
+        if (hiddenByDotQualifiedCandidates.isNotEmpty() || hiddenByNameReferenceExpressionCandidates.isNotEmpty()) {
             return true
+        }
     }
+
     return false
 }
 
-fun KtValueArgument.looksLikeLevelArgument(): Boolean {
-    return children.filterIsInstance<KtValueArgumentName>().any { it.asName.asString() == "level" }
+fun KtValueArgument.looksLikeLevelArgument(): Boolean = children.filterIsInstance<KtValueArgumentName>().any {
+    it.asName.asString() == "level"
 }
 
 internal fun KtAnnotated.isJvmStatic(support: KtUltraLightSupport): Boolean =
@@ -455,14 +455,14 @@ internal fun KtModifierListOwner.isDeprecated(support: KtUltraLightSupport? = nu
 }
 
 private fun toQualifiedName(userType: KtUserType): FqName? {
-    val reversedNames = Lists.newArrayList<String>()
+    val reversedNames = mutableListOf<String>().apply {
+        var current: KtUserType? = userType
+        while (current != null) {
+            val name = current.referencedName ?: return null
 
-    var current: KtUserType? = userType
-    while (current != null) {
-        val name = current.referencedName ?: return null
-
-        reversedNames.add(name)
-        current = current.qualifier
+            add(name)
+            current = current.qualifier
+        }
     }
 
     return FqName.fromSegments(ContainerUtil.reverse(reversedNames))
@@ -488,6 +488,7 @@ private fun escapeString(str: String): String = buildString {
             '\\' -> "\\\\"
             else -> "$char"
         }
+
         append(escaped)
     }
 }
@@ -506,6 +507,7 @@ private fun ConstantValue<*>.asStringForPsiLiteral(parent: PsiElement): String =
 
             "$canonicalText$arrayPart.class"
         }
+
         is EnumValue -> "${enumClassId.asSingleFqName().asString()}.$enumEntryName"
         else -> when (value) {
             is Long -> "${value}L"
@@ -557,13 +559,11 @@ inline fun KtFile.safeIsScript() = runReadAction { this.isScript() }
 inline fun KtFile.safeScript() = runReadAction { this.script }
 
 internal fun KtUltraLightSupport.findAnnotation(owner: KtAnnotated, fqName: FqName): Pair<KtAnnotationEntry, AnnotationDescriptor>? {
-
-    val candidates = owner.annotationEntries
-        .filter {
-            it.shortName?.let { name ->
-                name == fqName.shortName() || possiblyHasAlias(owner.containingKtFile, name)
-            } ?: false
-        }
+    val candidates = owner.annotationEntries.filter {
+        it.shortName?.let { name ->
+            name == fqName.shortName() || possiblyHasAlias(owner.containingKtFile, name)
+        } ?: false
+    }
 
     for (entry in candidates) {
         val descriptor = entry.analyzeAnnotation()
@@ -574,7 +574,7 @@ internal fun KtUltraLightSupport.findAnnotation(owner: KtAnnotated, fqName: FqNa
 
     if (owner is KtPropertyAccessor) {
         // We might have from the beginning just resolve the descriptor of the accessor
-        // But we trying to avoid analysis in case property doesn't have any relevant annotations at all
+        // But we're trying to avoid analysis in case property doesn't have any relevant annotations at all
         // (in case of `findAnnotation` returns null)
         if (findAnnotation(owner.property, fqName) == null) return null
 
@@ -593,15 +593,12 @@ internal fun KtUltraLightSupport.findAnnotation(owner: KtAnnotated, fqName: FqNa
 internal fun List<KtAnnotationEntry>.toLightAnnotations(
     parent: PsiElement,
     site: AnnotationUseSiteTarget?
-): List<KtLightAnnotationForSourceEntry> =
-    filter {
-        it.useSiteTarget?.getAnnotationUseSiteTarget() == site
-    }.map { entry ->
-        KtLightAnnotationForSourceEntry(
-            name = entry.shortName?.identifier,
-            lazyQualifiedName = { entry.analyzeAnnotation()?.fqName?.asString() },
-            kotlinOrigin = entry,
-            parent = parent,
-            lazyClsDelegate = null
-        )
-    }
+): List<KtLightAnnotationForSourceEntry> = filter { it.useSiteTarget?.getAnnotationUseSiteTarget() == site }.map { entry ->
+    KtLightAnnotationForSourceEntry(
+        name = entry.shortName?.identifier,
+        lazyQualifiedName = { entry.analyzeAnnotation()?.fqName?.asString() },
+        kotlinOrigin = entry,
+        parent = parent,
+        lazyClsDelegate = null
+    )
+}

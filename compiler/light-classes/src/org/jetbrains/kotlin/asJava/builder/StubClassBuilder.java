@@ -1,17 +1,6 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.asJava.builder;
@@ -49,14 +38,14 @@ public class StubClassBuilder extends AbstractClassBuilder {
             throw new UnsupportedOperationException("Shall not be called!");
         }
     };
-    private final StubElement parent;
+    private final StubElement<?> parent;
     private final PsiJavaFileStub fileStub;
-    private StubBuildingVisitor v;
-    private final Stack<StubElement> parentStack;
+    private StubBuildingVisitor<?> v;
+    private final Stack<StubElement<?>> parentStack;
     private boolean isPackageClass = false;
     private int memberIndex = 0;
 
-    public StubClassBuilder(@NotNull Stack<StubElement> parentStack, @NotNull PsiJavaFileStub fileStub) {
+    public StubClassBuilder(@NotNull Stack<StubElement<?>> parentStack, @NotNull PsiJavaFileStub fileStub) {
         this.parentStack = parentStack;
         this.parent = parentStack.peek();
         this.fileStub = fileStub;
@@ -81,7 +70,6 @@ public class StubClassBuilder extends AbstractClassBuilder {
     ) {
         assert v == null : "defineClass() called twice?";
 
-        //noinspection ConstantConditions
         v = new StubBuildingVisitor<>(null, EMPTY_STRATEGY, parent, access, calculateShortName(name));
 
         super.defineClass(origin, version, access, name, signature, superName, interfaces);
@@ -99,7 +87,7 @@ public class StubClassBuilder extends AbstractClassBuilder {
             parentStack.push(v.getResult());
         }
 
-        ((StubBase) v.getResult()).putUserData(ClsWrapperStubPsiFactory.ORIGIN, LightElementOriginKt.toLightClassOrigin(origin));
+        ((StubBase<?>) v.getResult()).putUserData(ClsWrapperStubPsiFactory.ORIGIN, LightElementOriginKt.toLightClassOrigin(origin));
     }
 
     @Nullable
@@ -111,7 +99,7 @@ public class StubClassBuilder extends AbstractClassBuilder {
             return internalName.substring(packagePrefix.length());
         }
         if (parent instanceof PsiClassStub<?>) {
-            String parentPrefix = getClassInternalNamePrefix((PsiClassStub) parent);
+            String parentPrefix = getClassInternalNamePrefix((PsiClassStub<?>) parent);
             if (parentPrefix == null) return null;
 
             assert internalName.startsWith(parentPrefix) : internalName + " : " + parentPrefix;
@@ -121,7 +109,7 @@ public class StubClassBuilder extends AbstractClassBuilder {
     }
 
     @Nullable
-    private String getClassInternalNamePrefix(@NotNull PsiClassStub classStub) {
+    private String getClassInternalNamePrefix(@NotNull PsiClassStub<?> classStub) {
         String packageName = fileStub.getPackageName();
 
         String classStubQualifiedName = classStub.getQualifiedName();
@@ -188,14 +176,14 @@ public class StubClassBuilder extends AbstractClassBuilder {
     }
 
     private void markLastChild(@NotNull JvmDeclarationOrigin origin) {
-        List children = v.getResult().getChildrenStubs();
-        StubBase last = (StubBase) children.get(children.size() - 1);
+        List<?> children = v.getResult().getChildrenStubs();
+        StubBase<?> last = (StubBase<?>) children.get(children.size() - 1);
 
         LightElementOrigin oldOrigin = last.getUserData(ClsWrapperStubPsiFactory.ORIGIN);
         if (oldOrigin != null) {
             PsiElement originalElement = oldOrigin.getOriginalElement();
             throw new IllegalStateException("Rewriting origin element: " +
-                                            (originalElement != null ? originalElement.getText() : null) + " for stub " + last.toString());
+                                            (originalElement != null ? originalElement.getText() : null) + " for stub " + last);
         }
 
         last.putUserData(ClsWrapperStubPsiFactory.ORIGIN, LightElementOriginKt.toLightMemberOrigin(origin));
@@ -205,7 +193,7 @@ public class StubClassBuilder extends AbstractClassBuilder {
     @Override
     public void done() {
         if (!isPackageClass) {
-            StubElement pop = parentStack.pop();
+            StubElement<?> pop = parentStack.pop();
             assert pop == v.getResult() : "parentStack: got " + pop + ", expected " + v.getResult();
         }
         super.done();

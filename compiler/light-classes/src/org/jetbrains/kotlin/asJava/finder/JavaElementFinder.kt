@@ -36,9 +36,7 @@ class JavaElementFinder(
     override fun findClass(qualifiedName: String, scope: GlobalSearchScope) = findClasses(qualifiedName, scope).firstOrNull()
 
     override fun findClasses(qualifiedNameString: String, scope: GlobalSearchScope): Array<PsiClass> {
-        if (!isValidJavaFqName(qualifiedNameString)) {
-            return PsiClass.EMPTY_ARRAY
-        }
+        if (!isValidJavaFqName(qualifiedNameString)) return PsiClass.EMPTY_ARRAY
 
         val answer = SmartList<PsiClass>()
 

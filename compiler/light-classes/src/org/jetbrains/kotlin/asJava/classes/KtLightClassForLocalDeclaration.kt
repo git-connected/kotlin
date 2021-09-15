@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -43,7 +43,7 @@ open class KtLightClassForLocalDeclaration(
                 // Use PsiClass wrapper instead of package light class to avoid names like "FooPackage" in Type Hierarchy and related views
                 if (containingClass is KtLightClassForFacade) {
                     containingClass = object : LightClass(containingClass as KtLightClassForFacade, KotlinLanguage.INSTANCE) {
-                        override fun getName(): String? = currentFileName
+                        override fun getName(): String = currentFileName
                     }
                     createWrapper = true
                 }

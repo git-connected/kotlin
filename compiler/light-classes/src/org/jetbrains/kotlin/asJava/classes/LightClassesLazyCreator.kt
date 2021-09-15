@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -16,18 +16,17 @@ class LightClassesLazyCreator(private val project: Project) : KotlinClassInnerSt
     override fun <T : Any> get(initializer: () -> T, dependencies: List<Any>) = object : Lazy<T> {
         private val lock = ReentrantLock()
         private val holder = lazyPub {
-            PsiCachedValueImpl(PsiManager.getInstance(project),
-                               CachedValueProvider<T> {
-                                   val v = initializer()
-                                   CachedValueProvider.Result.create(v, dependencies)
-                               })
+            PsiCachedValueImpl(PsiManager.getInstance(project)) {
+                val v = initializer()
+                CachedValueProvider.Result.create(v, dependencies)
+            }
         }
 
         private fun computeValue(): T = holder.value.value ?: error("holder has not null in initializer")
 
         override val value: T
-            get() {
-                return if (holder.value.hasUpToDateValue()) {
+            get() =
+                if (holder.value.hasUpToDateValue()) {
                     computeValue()
                 } else {
                     // the idea behind this locking approach:
@@ -39,7 +38,7 @@ class LightClassesLazyCreator(private val project: Project) : KotlinClassInnerSt
                     // to avoid dead-lock
                     // - we mark thread as doing calculation and acquire lock only once per thread
                     // as a trade-off to prevent dependent value could be calculated several time
-                    // due to CAS (within putUserDataIfAbsent etc) the same instance of calculated value will be used
+                    // due to CAS (within putUserDataIfAbsent etc.) the same instance of calculated value will be used
 
                     // TODO: NOTE: acquire lock for a several seconds to avoid dead-lock via resolve is a WORKAROUND
 
@@ -58,7 +57,6 @@ class LightClassesLazyCreator(private val project: Project) : KotlinClassInnerSt
                         computeValue()
                     }
                 }
-            }
 
         override fun isInitialized() = holder.isInitialized()
     }

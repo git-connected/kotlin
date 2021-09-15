@@ -1,17 +1,6 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.asJava
@@ -52,6 +41,7 @@ fun getJvmSignatureDiagnostics(element: PsiElement, otherDiagnostics: Diagnostic
         if (lightClassDataHolder is InvalidLightClassDataHolder) {
             return Diagnostics.EMPTY
         }
+
         return lightClassDataHolder.extraDiagnostics
     }
 
@@ -63,6 +53,7 @@ fun getJvmSignatureDiagnostics(element: PsiElement, otherDiagnostics: Diagnostic
         if (element is KtPropertyAccessor) {
             parent = parent?.parent
         }
+
         if (element is KtParameter && element.hasValOrVar()) {
             // property declared in constructor
             val parentClass = (parent?.parent?.parent as? KtClass)
@@ -70,14 +61,11 @@ fun getJvmSignatureDiagnostics(element: PsiElement, otherDiagnostics: Diagnostic
                 return getDiagnosticsForClass(parentClass)
             }
         }
-        if (element is KtClassOrObject) {
-            return getDiagnosticsForClass(element)
-        }
+
+        if (element is KtClassOrObject) return getDiagnosticsForClass(element)
 
         when (parent) {
-            is KtFile -> {
-                return getDiagnosticsForFileFacade(parent)
-            }
+            is KtFile -> return getDiagnosticsForFileFacade(parent)
             is KtClassBody -> {
                 val parentsParent = parent.getParent()
 
@@ -86,6 +74,7 @@ fun getJvmSignatureDiagnostics(element: PsiElement, otherDiagnostics: Diagnostic
                 }
             }
         }
+
         return null
     }
 
@@ -96,17 +85,23 @@ fun getJvmSignatureDiagnostics(element: PsiElement, otherDiagnostics: Diagnostic
 
 class FilteredJvmDiagnostics(val jvmDiagnostics: Diagnostics, val otherDiagnostics: Diagnostics) : Diagnostics by jvmDiagnostics {
     companion object {
-        private val higherPriorityDiagnosticFactories =
-            setOf(CONFLICTING_OVERLOADS, REDECLARATION, NOTHING_TO_OVERRIDE, MANY_IMPL_MEMBER_NOT_IMPLEMENTED)
+        private val higherPriorityDiagnosticFactories = setOf(
+            CONFLICTING_OVERLOADS,
+            REDECLARATION,
+            NOTHING_TO_OVERRIDE,
+            MANY_IMPL_MEMBER_NOT_IMPLEMENTED,
+        )
 
-        private val jvmDiagnosticFactories =
-            setOf(CONFLICTING_JVM_DECLARATIONS, ACCIDENTAL_OVERRIDE, CONFLICTING_INHERITED_JVM_DECLARATIONS)
+        private val jvmDiagnosticFactories = setOf(
+            CONFLICTING_JVM_DECLARATIONS,
+            ACCIDENTAL_OVERRIDE,
+            CONFLICTING_INHERITED_JVM_DECLARATIONS,
+        )
     }
 
-    private fun alreadyReported(psiElement: PsiElement): Boolean {
-        return otherDiagnostics.forElement(psiElement).any { it.factory in higherPriorityDiagnosticFactories }
-                || psiElement is KtPropertyAccessor && alreadyReported(psiElement.parent)
-    }
+    private fun alreadyReported(psiElement: PsiElement): Boolean =
+        otherDiagnostics.forElement(psiElement).any { it.factory in higherPriorityDiagnosticFactories } ||
+                psiElement is KtPropertyAccessor && alreadyReported(psiElement.parent)
 
     override fun forElement(psiElement: PsiElement): Collection<Diagnostic> {
         fun Diagnostic.data() = DiagnosticFactory.cast(this, jvmDiagnosticFactories).a
@@ -143,18 +138,12 @@ class FilteredJvmDiagnostics(val jvmDiagnostics: Diagnostics, val otherDiagnosti
         return filtered + other
     }
 
-    override fun all(): Collection<Diagnostic> {
-        return jvmDiagnostics.all()
-            .map { it.psiElement }
-            .toSet()
-            .flatMap { forElement(it) }
-    }
+    override fun all(): Collection<Diagnostic> = jvmDiagnostics.all().map { it.psiElement }.toSet().flatMap { forElement(it) }
 }
 
-private infix fun ConflictingJvmDeclarationsData.higherThan(other: ConflictingJvmDeclarationsData): Boolean {
-    return when (other.classOrigin.originKind) {
+private infix fun ConflictingJvmDeclarationsData.higherThan(other: ConflictingJvmDeclarationsData): Boolean =
+    when (other.classOrigin.originKind) {
         INTERFACE_DEFAULT_IMPL -> this.classOrigin.originKind != INTERFACE_DEFAULT_IMPL
         MULTIFILE_CLASS_PART -> this.classOrigin.originKind == MULTIFILE_CLASS
         else -> false
     }
-}

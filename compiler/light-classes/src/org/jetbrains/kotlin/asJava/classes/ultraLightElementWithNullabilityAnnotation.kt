@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -27,18 +27,24 @@ interface KtUltraLightElementWithNullabilityAnnotation<out T : KtDeclaration, ou
         val psiType = psiTypeForNullabilityAnnotation ?: return null
         if (psiType is PsiPrimitiveType) return null
 
-        if (notErrorKotlinType.isTypeParameter()) {
-            if (!TypeUtils.hasNullableSuperType(notErrorKotlinType)) return NotNull::class.java.name
-            if (!notErrorKotlinType.isMarkedNullable) return null
-        }
-
-        return when (notErrorKotlinType.nullability()) {
-            TypeNullability.NOT_NULL -> NotNull::class.java.name
-            TypeNullability.NULLABLE -> Nullable::class.java.name
-            TypeNullability.FLEXIBLE -> null
-        }
+        return nullableName(notErrorKotlinType)
     }
 
     val qualifiedNameForNullabilityAnnotation: String?
     val psiTypeForNullabilityAnnotation: PsiType?
+
+    companion object {
+        fun nullableName(kotlinType: KotlinType): String? {
+            if (kotlinType.isTypeParameter()) {
+                if (!TypeUtils.hasNullableSuperType(kotlinType)) return NotNull::class.java.name
+                if (!kotlinType.isMarkedNullable) return null
+            }
+
+            return when (kotlinType.nullability()) {
+                TypeNullability.NOT_NULL -> NotNull::class.java.name
+                TypeNullability.NULLABLE -> Nullable::class.java.name
+                TypeNullability.FLEXIBLE -> null
+            }
+        }
+    }
 }

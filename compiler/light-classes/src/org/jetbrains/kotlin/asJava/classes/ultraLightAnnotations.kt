@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -88,9 +88,7 @@ private class PsiNameValuePairForAnnotationArgument(
 ) : KtLightElementBase(parent), PsiNameValuePair {
     override val kotlinOrigin: KtElement? get() = null
 
-    private val _value by lazyPub {
-        constantValue.toAnnotationMemberValue(this, ultraLightSupport)
-    }
+    private val _value by lazyPub { constantValue.toAnnotationMemberValue(this, ultraLightSupport) }
 
     override fun setValue(p0: PsiAnnotationMemberValue) = cannotModify()
 
@@ -106,13 +104,10 @@ private class PsiNameValuePairForAnnotationArgument(
 private fun ConstantValue<*>.toAnnotationMemberValue(
     parent: PsiElement, ultraLightSupport: KtUltraLightSupport
 ): PsiAnnotationMemberValue? = when (this) {
-
     is AnnotationValue -> value.toLightAnnotation(ultraLightSupport, parent)
-
-    is ArrayValue ->
-        KtUltraLightPsiArrayInitializerMemberValue(lightParent = parent) { arrayLiteralParent ->
-            this.value.mapNotNull { element -> element.toAnnotationMemberValue(arrayLiteralParent, ultraLightSupport) }
-        }
+    is ArrayValue -> KtUltraLightPsiArrayInitializerMemberValue(lightParent = parent) { arrayLiteralParent ->
+        this.value.mapNotNull { element -> element.toAnnotationMemberValue(arrayLiteralParent, ultraLightSupport) }
+    }
 
     is ErrorValue -> null
     else -> createPsiLiteral(parent)

@@ -1,17 +1,6 @@
 /*
- * Copyright 2010-2017 JetBrains s.r.o.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.asJava.builder
@@ -35,30 +24,29 @@ import org.jetbrains.kotlin.resolve.diagnostics.Diagnostics
 data class LightClassBuilderResult(val stub: PsiJavaFileStub, val bindingContext: BindingContext, val diagnostics: Diagnostics)
 
 fun buildLightClass(
-        packageFqName: FqName,
-        files: Collection<KtFile>,
-        generateClassFilter: GenerationState.GenerateClassFilter,
-        context: LightClassConstructionContext,
-        generate: (state: GenerationState, files: Collection<KtFile>) -> Unit
+    packageFqName: FqName,
+    files: Collection<KtFile>,
+    generateClassFilter: GenerationState.GenerateClassFilter,
+    context: LightClassConstructionContext,
+    generate: (state: GenerationState, files: Collection<KtFile>) -> Unit
 ): LightClassBuilderResult {
     val project = files.first().project
 
     try {
         val classBuilderFactory = KotlinLightClassBuilderFactory(createJavaFileStub(packageFqName, files))
         val state = GenerationState.Builder(
-                project,
-                classBuilderFactory,
-                context.module,
-                context.bindingContext,
-                files.toList(),
-                context.languageVersionSettings?.let {
-                    CompilerConfiguration().apply {
-                        languageVersionSettings = it
-                        put(JVMConfigurationKeys.JVM_TARGET, context.jvmTarget)
-                        isReadOnly = true
-                    }
-                } ?: CompilerConfiguration.EMPTY
-
+            project,
+            classBuilderFactory,
+            context.module,
+            context.bindingContext,
+            files.toList(),
+            context.languageVersionSettings?.let {
+                CompilerConfiguration().apply {
+                    languageVersionSettings = it
+                    put(JVMConfigurationKeys.JVM_TARGET, context.jvmTarget)
+                    isReadOnly = true
+                }
+            } ?: CompilerConfiguration.EMPTY
         ).generateDeclaredClassFilter(generateClassFilter).wantsDiagnostics(false).build()
         state.beforeCompile()
 
@@ -68,30 +56,23 @@ fun buildLightClass(
 
         stubComputationTrackerInstance(project)?.onStubComputed(javaFileStub, context)
         return LightClassBuilderResult(javaFileStub, context.bindingContext, state.collectedExtraJvmDiagnostics)
-    }
-    catch (e: ProcessCanceledException) {
+    } catch (e: ProcessCanceledException) {
         throw e
-    }
-    catch (e: RuntimeException) {
+    } catch (e: RuntimeException) {
         logErrorWithOSInfo(e, packageFqName, null)
         throw e
     }
 }
 
 private fun createJavaFileStub(packageFqName: FqName, files: Collection<KtFile>): PsiJavaFileStub {
-    val javaFileStub = PsiJavaFileStubImpl(packageFqName.asString(), /*compiled = */true)
+    val javaFileStub = PsiJavaFileStubImpl(packageFqName.asString(), /* compiled = */true)
     javaFileStub.psiFactory = ClsWrapperStubPsiFactory.INSTANCE
 
     val fakeFile = object : ClsFileImpl(files.first().viewProvider) {
         override fun getStub() = javaFileStub
-
         override fun getPackageName() = packageFqName.asString()
-
         override fun isPhysical() = false
-
-        override fun getText(): String {
-            return files.singleOrNull()?.text ?: super.getText()
-        }
+        override fun getText(): String = files.singleOrNull()?.text ?: super.getText()
     }
 
     javaFileStub.psi = fakeFile
@@ -99,11 +80,11 @@ private fun createJavaFileStub(packageFqName: FqName, files: Collection<KtFile>)
 }
 
 private fun logErrorWithOSInfo(cause: Throwable?, fqName: FqName, virtualFile: VirtualFile?) {
-    val path = if (virtualFile == null) "<null>" else virtualFile.path
+    val path = virtualFile?.path ?: "<null>"
     LOG.error(
-            "Could not generate LightClass for $fqName declared in $path\n" +
-            "System: ${SystemInfo.OS_NAME} ${SystemInfo.OS_VERSION} Java Runtime: ${SystemInfo.JAVA_RUNTIME_VERSION}",
-            cause
+        "Could not generate LightClass for $fqName declared in $path\n" +
+                "System: ${SystemInfo.OS_NAME} ${SystemInfo.OS_VERSION} Java Runtime: ${SystemInfo.JAVA_RUNTIME_VERSION}",
+        cause
     )
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2018 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -41,13 +41,13 @@ public class KotlinLightReferenceListBuilder extends LightReferenceListBuilder i
 
     @Override
     public void addReference(String qualifiedName) {
-        final PsiJavaCodeReferenceElement ref = myFactory.createReferenceElementByFQClassName(qualifiedName, getResolveScope());
+        PsiJavaCodeReferenceElement ref = myFactory.createReferenceElementByFQClassName(qualifiedName, getResolveScope());
         myRefs.add(ref);
     }
 
     @Override
     public void addReference(PsiClassType type) {
-        final PsiJavaCodeReferenceElement ref = myFactory.createReferenceElementByType(type);
+        PsiJavaCodeReferenceElement ref = myFactory.createReferenceElementByType(type);
         myRefs.add(ref);
     }
 
